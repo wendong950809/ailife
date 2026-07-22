@@ -1,0 +1,102 @@
+{
+  "project": {
+    "name": "AI人生操作系统",
+    "deviceType": "mobile",
+    "operatingMode": "library-bound",
+    "designRead": "mobile app / personal life companion / calm editorial / moderate / no loud gradients",
+    "designDials": {
+      "layoutVariance": 3,
+      "motionIntensity": 2,
+      "visualDensity": 3
+    },
+    "styleContinuityAnchors": {
+      "colorSystem": "Apple HIG-inspired blues and neutrals, brand-500 #007aff primary, dark mode with background #000000 card #1c1c1e",
+      "shapeSystem": "radius 19.2px global, pill buttons, rounded cards and inputs",
+      "typographySystem": "DM Sans for all interface text, JetBrains Mono for data/technical, display 72-96px/600/-0.04em, body 14-16px/400/1.55",
+      "spacingSystem": "0.24rem base, scale 4/8/12/16/24/32/48/64, generous whitespace",
+      "componentLanguage": "border-first cards, subtle shadows, capsule buttons, calm hierarchy",
+      "surfaceAndDepth": "border-led static surfaces, whisper-light shadows, deeper elevation only for overlays",
+      "imageryAndIconography": "SVG icons, natural-light photography, centered product imagery"
+    }
+  },
+  "designSource": {
+    "operatingMode": "library-bound",
+    "libraryIdentity": {
+      "name": "苹果",
+      "id": "dl_builtin_apple",
+      "version": null,
+      "scope": "built-in-global",
+      "path": "c:\\Users\\郑文东\\.trae-cn\\design_libraries\\dl_builtin_apple",
+      "versionSource": "selected-context"
+    },
+    "styleConstraints": {
+      "radiusMax": 19.2,
+      "spacingBase": 3.84,
+      "staticShadowAlphaMax": 0.05
+    },
+    "iconAssets": {
+      "source": "assets/icons",
+      "projectIconDir": "assets/icons/dl_builtin_apple",
+      "libraryKey": "dl_builtin_apple",
+      "renderMethod": "css-mask",
+      "pathTemplate": "../assets/icons/dl_builtin_apple/{name}.svg",
+      "availableNames": ["arrow-down","arrow-left","arrow-right","arrow-up","box","check","chevron-down","chevron-left","chevron-right","chevron-up","chevrons-down-up","chevrons-up-down","circle-alert","circle-check","circle-minus","circle-pause","circle-play","circle-plus","circle-question-mark","external-link","file","folder-open","folder","funnel","grip","heart","house","mail","map-pin","message-circle-more","mouse-pointer-click","pen-line","send-horizontal","star","tag","thumbs-down","thumbs-up","trash-2","triangle-alert","user"],
+      "totalCount": 42,
+      "coloringRule": "currentColor by default"
+    }
+  },
+  "pages": [
+    {
+      "slug": "today",
+      "title": "Today",
+      "htmlSrc": "pages/today.html",
+      "pageType": "showcase",
+      "deviceType": "mobile",
+      "componentPlan": [],
+      "generationTree": { "role": "leaf", "status": "planned" }
+    },
+    {
+      "slug": "timeline",
+      "title": "Timeline",
+      "htmlSrc": "pages/timeline.html",
+      "pageType": "information-dense",
+      "deviceType": "mobile",
+      "componentPlan": [],
+      "generationTree": { "role": "leaf", "status": "planned" }
+    },
+    {
+      "slug": "capture",
+      "title": "Capture",
+      "htmlSrc": "pages/capture.html",
+      "pageType": "task-driven",
+      "deviceType": "mobile",
+      "componentPlan": [],
+      "generationTree": { "role": "leaf", "status": "planned" }
+    },
+    {
+      "slug": "ai",
+      "title": "AI",
+      "htmlSrc": "pages/ai.html",
+      "pageType": "showcase",
+      "deviceType": "mobile",
+      "componentPlan": [],
+      "generationTree": { "role": "leaf", "status": "planned" }
+    },
+    {
+      "slug": "me",
+      "title": "Me",
+      "htmlSrc": "pages/me.html",
+      "pageType": "information-dense",
+      "deviceType": "mobile",
+      "componentPlan": [],
+      "generationTree": { "role": "leaf", "status": "planned" }
+    }
+  ],
+  "sharedProjectShellContract": {
+    "navigationBar": "bottom tab bar with 5 tabs: Today, Timeline, Capture(center+FAB), AI, Me",
+    "statusBar": "44pt system status bar with time and icons",
+    "safeArea": "bottom safe area padding for home indicator",
+    "radiusScale": "4px small, 12px medium, 19.2px large, 9999px full-pill",
+    "surfaceDepthModel": "border-first static surfaces, shadow alpha <= 0.05 at rest"
+  }
+}

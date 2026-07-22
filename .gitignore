@@ -1,0 +1,66 @@
+# Miscellaneous
+*.class
+*.log
+*.pyc
+*.swp
+.DS_Store
+.atom/
+.buildlog/
+.history
+.svn/
+migrate_working_dir/
+
+# IntelliJ related
+*.iml
+*.ipr
+*.iws
+.idea/
+
+# VS Code
+.vscode/
+
+# Flutter/Dart/Pub related
+**/doc/api/
+**/ios/Flutter/.last_build_id
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.pub-cache/
+.pub/
+/build/
+
+# Node.js
+node_modules/
+package-lock.json
+yarn.lock
+
+# Symbolication related
+app.*.symbols
+
+# Obfuscation related
+app.*.map.json
+
+# Android Studio will place build artifacts here
+/android/app/debug
+/android/app/profile
+/android/app/release
+/android/.gradle/
+
+# 环境变量（包含密钥，不要提交）
+.env
+.env.local
+.env.production
+
+# 开发工具目录
+dev/
+
+# 临时脚本（包含密钥，不要提交）
+scripts/
+
+# 构建日志
+build_error.txt
+build_full.txt
+build_full2.txt
+build_full3.txt
+build_full4.txt
+build_web_log.txt

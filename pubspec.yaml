@@ -1,0 +1,58 @@
+name: ailife
+description: "AI人生 - Digital Self 数字自我"
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.5.3
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # UI
+  cupertino_icons: ^1.0.8
+  google_fonts: ^6.2.1
+
+  # 状态管理
+  provider: ^6.1.2
+
+  # 后端服务
+  supabase_flutter: ^2.6.0
+
+  # 网络请求
+  http: ^1.2.2
+
+  # 环境变量管理
+  flutter_dotenv: ^5.2.1
+
+  # 本地存储
+  shared_preferences: ^2.3.2
+
+  # 路由管理
+  go_router: ^14.2.7
+
+  # 日期时间处理
+  intl: ^0.19.0
+
+  # UUID 生成
+  uuid: ^4.5.1
+  mime: ^2.0.0
+
+  # Markdown 渲染
+  flutter_markdown: ^0.7.4
+
+  # 文件/图片选择
+  file_picker: ^8.1.2
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - .env

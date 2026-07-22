@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>AI - AI Life OS</title>
+    <style id="theme-vars">
+/*
+ * Pinguo design tokens
+ * Brand: Pinguo
+ * Domain: Consumer imaging product
+ * Style: Restrained, elegant, Apple-inspired
+ * Theme mode: light-dark
+ * Source language: zh
+ * Output language: en
+ *
+ * Color architecture (two layers):
+ *   1. Primitive palette - six categories. brand / background / text / icon
+ *      are each a 10-step scale (50 lightest to 900 darkest). state-success and
+ *      state-error are functional colors anchored on Apple system colors.
+ *      Anchors follow Apple Human Interface Guidelines system colors
+ *      (System Blue #007AFF, System Green #34C759, System Red #FF3B30,
+ *      system grays / label / background colors).
+ *   2. Semantic tokens - :root (light) and .dark map roles onto primitives.
+ *      Components and UI kits must only consume the semantic tokens below.
+ */
+
+/* @group-priority: brand, background, text, icon, state-success, state-error */
+
+:root {
+  
+  /* solo-design consumption aliases: explicit prefix for fill-html-head.mjs */
+  --apple-background: var(--background, #ffffff);
+  --apple-foreground: var(--foreground, #0f172a);
+  --apple-card: var(--card, var(--background));
+  --apple-card-foreground: var(--card-foreground, var(--foreground));
+  --apple-popover: var(--popover, var(--card));
+  --apple-popover-foreground: var(--popover-foreground, var(--card-foreground, var(--foreground)));
+  --apple-primary: var(--primary, #111827);
+  --apple-primary-foreground: var(--primary-foreground, #ffffff);
+  --apple-secondary: var(--secondary, var(--muted, var(--card)));
+  --apple-secondary-foreground: var(--secondary-foreground, var(--foreground));
+  --apple-muted: var(--muted, var(--card));
+  --apple-muted-foreground: var(--muted-foreground, var(--foreground));
+  --apple-accent: var(--accent, var(--secondary, var(--muted, var(--card))));
+  --apple-accent-foreground: var(--accent-foreground, var(--foreground));
+  --apple-destructive: var(--destructive, #ef4444);
+  --apple-destructive-foreground: var(--destructive-foreground, #ffffff);
+  --apple-border: var(--border, currentColor);
+  --apple-input: var(--input, var(--border));
+  --apple-ring: var(--ring, var(--primary));
+  --apple-chart-1: var(--chart-1, var(--primary));
+  --apple-chart-2: var(--chart-2, var(--secondary, var(--primary)));
+  --apple-chart-3: var(--chart-3, var(--accent, var(--primary)));
+  --apple-chart-4: var(--chart-4, var(--muted-foreground, var(--foreground)));
+  --apple-chart-5: var(--chart-5, var(--foreground));
+  --apple-sidebar: var(--sidebar, var(--background));
+  --apple-sidebar-foreground: var(--sidebar-foreground, var(--foreground));
+  --apple-sidebar-primary: var(--sidebar-primary, var(--primary));
+  --apple-sidebar-primary-foreground: var(--sidebar-primary-foreground, var(--primary-foreground));
+  --apple-sidebar-accent: var(--sidebar-accent, var(--accent, var(--muted, var(--card))));
+  --apple-sidebar-accent-foreground: var(--sidebar-accent-foreground, var(--accent-foreground, var(--foreground)));
+
+/* ===== PRIMITIVE PALETTE ===== */
+
+  /* brand */
+  --brand-50: #e8f2ff;
+  --brand-100: #cfe5ff;
+  --brand-200: #9fcbff;
+  --brand-300: #66abff;
+  --brand-400: #2e8dff;
+  --brand-500: #007aff; /* @primary */
+  --brand-600: #0064d6;
+  --brand-700: #004fad;
+  --brand-800: #003b82;
+  --brand-900: #00275a;
+
+  /* background */
+  --background-50: #ffffff;
+  --background-100: #f7f7fa;
+  --background-200: #f2f2f7;
+  --background-300: #e5e5ea;
+  --background-400: #d1d1d6;
+  --background-500: #aeaeb2;
+  --background-600: #8e8e93;
+  --background-700: #3a3a3c;
+  --background-800: #1c1c1e;
+  --background-900: #000000;
+
+  /* text */
+  --text-50: #f5f5f7;
+  --text-100: #e3e3e8;
+  --text-200: #c7c7cc;
+  --text-300: #aeaeb2;
+  --text-400: #8e8e93;
+  --text-500: #6e6e73;
+  --text-600: #48484a;
+  --text-700: #3c3c43;
+  --text-800: #1d1d1f;
+  --text-900: #000000;
+
+  /* icon */
+  --icon-50: #f5f5f7;
+  --icon-100: #e5e5ea;
+  --icon-200: #d1d1d6;
+  --icon-300: #c7c7cc;
+  --icon-400: #aeaeb2;
+  --icon-500: #8e8e93;
+  --icon-600: #6e6e73;
+  --icon-700: #48484a;
+  --icon-800: #2c2c2e;
+  --icon-900: #1d1d1f;
+
+  /* state-success */
+  --state-success: #34c759; /* @primary */
+  --state-success-dark: #30d158;
+  --state-success-surface: #e9f9ee;
+  --state-success-foreground: #ffffff;
+
+  /* state-error */
+  --state-error: #ff3b30; /* @primary */
+  --state-error-dark: #ff453a;
+  --state-error-surface: #ffecea;
+  --state-error-foreground: #ffffff;
+
+  /* ===== SEMANTIC ROLES ===== */
+
+  /* semantic */
+  --background: var(--background-50);
+  --foreground: var(--text-800);
+  --card: var(--background-50);
+  --card-foreground: var(--text-800);
+  --popover: var(--background-50);
+  --popover-foreground: var(--text-900);
+
+  --primary: var(--brand-500);
+  --primary-foreground: var(--background-50);
+  --secondary: var(--background-200);
+  --secondary-foreground: var(--text-800);
+  --muted: var(--background-200);
+  --muted-foreground: var(--text-400);
+  --accent: var(--background-100);
+  --accent-foreground: var(--text-800);
+  --destructive: var(--state-error);
+  --destructive-foreground: var(--state-error-foreground);
+  --success: var(--state-success);
+  --success-foreground: var(--state-success-foreground);
+  --border: var(--background-300);
+  --input: var(--background-400);
+  --ring: var(--brand-500);
+
+  --icon: var(--icon-900);
+  --icon-muted: var(--icon-500);
+
+  /* chart */
+  --chart-1: var(--state-success);
+  --chart-2: var(--brand-500);
+  --chart-3: #ff9500;
+  --chart-4: #5856d6;
+  --chart-5: #af52de;
+
+  /* sidebar */
+  --sidebar: var(--background-200);
+  --sidebar-foreground: var(--text-800);
+  --sidebar-primary: var(--brand-500);
+  --sidebar-primary-foreground: var(--background-50);
+  --sidebar-accent: var(--background-300);
+  --sidebar-accent-foreground: var(--text-800);
+  --sidebar-border: var(--background-300);
+  --sidebar-ring: var(--brand-500);
+
+  /* TYPOGRAPHY */
+  --font-sans: DM Sans, ui-sans-serif, sans-serif, system-ui;
+  --font-serif: DM Sans, ui-sans-serif, sans-serif, system-ui;
+  --font-mono: JetBrains Mono, monospace;
+  --tracking-normal: 0em;
+
+  /* RADIUS */
+  --radius: 1.2rem;
+
+  /* SHADOWS */
+  --shadow-2xs: 0 1px 2px -1px rgba(0, 0, 0, 0.04); /* Hairline */
+  --shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.04); /* Subtle */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05), 0 1px 3px -1px rgba(0, 0, 0, 0.05); /* Card */
+  --shadow: 0 2px 4px -1px rgba(0, 0, 0, 0.06), 0 1px 2px -1px rgba(0, 0, 0, 0.05); /* Raised */
+  --shadow-md: 0 4px 8px -2px rgba(0, 0, 0, 0.06), 0 2px 4px -2px rgba(0, 0, 0, 0.05); /* Card Hover */
+  --shadow-lg: 0 8px 24px -8px rgba(0, 0, 0, 0.08), 0 4px 8px -4px rgba(0, 0, 0, 0.05); /* Float */
+  --shadow-xl: 0 16px 40px -10px rgba(0, 0, 0, 0.10), 0 8px 16px -8px rgba(0, 0, 0, 0.06); /* Overlay */
+  --shadow-2xl: 0 24px 64px -12px rgba(0, 0, 0, 0.12); /* Modal */
+
+  /* SPACING */
+  --spacing: 0.24rem;
+}
+
+/* ===== SEMANTIC ROLES - dark (primitive palette inherited) ===== */
+.dark {
+  --background: var(--background-900);
+  --foreground: var(--text-50);
+  --card: var(--background-800);
+  --card-foreground: var(--text-50);
+  --popover: var(--background-700);
+  --popover-foreground: var(--text-50);
+
+  --primary: var(--brand-400);
+  --primary-foreground: var(--background-900);
+  --secondary: var(--background-800);
+  --secondary-foreground: var(--text-50);
+  --muted: var(--background-800);
+  --muted-foreground: var(--text-400);
+  --accent: var(--background-700);
+  --accent-foreground: var(--text-50);
+  --destructive: var(--state-error-dark);
+  --destructive-foreground: var(--state-error-foreground);
+  --success: var(--state-success-dark);
+  --success-foreground: var(--state-success-foreground);
+  --border: var(--background-700);
+  --input: var(--background-700);
+  --ring: var(--brand-400);
+
+  --icon: var(--icon-50);
+  --icon-muted: var(--icon-500);
+
+  --chart-1: var(--state-success-dark);
+  --chart-2: var(--brand-400);
+  --chart-3: #ff9f0a;
+  --chart-4: #5e5ce6;
+  --chart-5: #bf5af2;
+
+  --sidebar: var(--background-800);
+  --sidebar-foreground: var(--text-50);
+  --sidebar-primary: var(--brand-400);
+  --sidebar-primary-foreground: var(--background-900);
+  --sidebar-accent: var(--background-700);
+  --sidebar-accent-foreground: var(--text-50);
+  --sidebar-border: var(--background-700);
+  --sidebar-ring: var(--brand-400);
+
+  --shadow-2xs: 0 1px 2px -1px rgba(0, 0, 0, 0.30);
+  --shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.30);
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.36), 0 1px 3px -1px rgba(0, 0, 0, 0.36);
+  --shadow: 0 2px 4px -1px rgba(0, 0, 0, 0.40), 0 1px 2px -1px rgba(0, 0, 0, 0.36);
+  --shadow-md: 0 4px 8px -2px rgba(0, 0, 0, 0.44), 0 2px 4px -2px rgba(0, 0, 0, 0.36);
+  --shadow-lg: 0 8px 24px -8px rgba(0, 0, 0, 0.50), 0 4px 8px -4px rgba(0, 0, 0, 0.40);
+  --shadow-xl: 0 16px 40px -10px rgba(0, 0, 0, 0.55), 0 8px 16px -8px rgba(0, 0, 0, 0.44);
+  --shadow-2xl: 0 24px 64px -12px rgba(0, 0, 0, 0.60);
+}
+
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.3.1/dist/index.global.js"></script>
+    <style type="text/tailwindcss">
+  @theme inline {
+    --color-background: var(--apple-background);
+    --color-foreground: var(--apple-foreground);
+    --color-card: var(--apple-card);
+    --color-card-foreground: var(--apple-card-foreground);
+    --color-popover: var(--apple-popover);
+    --color-popover-foreground: var(--apple-popover-foreground);
+    --color-primary: var(--apple-primary);
+    --color-primary-foreground: var(--apple-primary-foreground);
+    --color-secondary: var(--apple-secondary);
+    --color-secondary-foreground: var(--apple-secondary-foreground);
+    --color-muted: var(--apple-muted);
+    --color-muted-foreground: var(--apple-muted-foreground);
+    --color-accent: var(--apple-accent);
+    --color-accent-foreground: var(--apple-accent-foreground);
+    --color-destructive: var(--apple-destructive);
+    --color-destructive-foreground: var(--apple-destructive-foreground);
+    --color-border: var(--apple-border);
+    --color-input: var(--apple-input);
+    --color-ring: var(--apple-ring);
+    --color-chart-1: var(--apple-chart-1);
+    --color-chart-2: var(--apple-chart-2);
+    --color-chart-3: var(--apple-chart-3);
+    --color-chart-4: var(--apple-chart-4);
+    --color-chart-5: var(--apple-chart-5);
+    --color-sidebar: var(--apple-sidebar);
+    --color-sidebar-foreground: var(--apple-sidebar-foreground);
+    --color-sidebar-primary: var(--apple-sidebar-primary);
+    --color-sidebar-primary-foreground: var(--apple-sidebar-primary-foreground);
+    --color-sidebar-accent: var(--apple-sidebar-accent);
+    --color-sidebar-accent-foreground: var(--apple-sidebar-accent-foreground);
+    --color-brand-400: var(--brand-400);
+    --color-brand-500: var(--brand-500);
+  }
+  @layer base {
+    body { background: var(--apple-background); color: var(--apple-foreground); }
+  }
+    </style>
+</head>
+<body class="min-h-screen font-sans antialiased page-body">
+
+    <!-- Status Bar -->
+    <div class="flex items-center justify-between px-6 pt-3 pb-1" style="height: 44px;">
+        <span class="text-sm font-semibold" style="color: var(--foreground);">9:41</span>
+        <div class="flex items-center gap-1.5" style="color: var(--foreground);">
+            <!-- Signal bars -->
+            <svg width="18" height="12" viewBox="0 0 18 12" fill="none">
+                <rect x="0" y="8" width="3" height="4" rx="0.5" fill="currentColor"/>
+                <rect x="4.5" y="5" width="3" height="7" rx="0.5" fill="currentColor"/>
+                <rect x="9" y="2" width="3" height="10" rx="0.5" fill="currentColor"/>
+                <rect x="13.5" y="0" width="3" height="12" rx="0.5" fill="currentColor" opacity="0.3"/>
+            </svg>
+            <!-- WiFi -->
+            <svg width="16" height="12" viewBox="0 0 16 12" fill="none">
+                <path d="M8 10.5a1.5 1.5 0 110 3 1.5 1.5 0 010-3z" fill="currentColor" transform="translate(0,-2)"/>
+                <path d="M4.5 7.5C5.5 6.5 6.7 6 8 6s2.5.5 3.5 1.5" stroke="currentColor" stroke-width="1.2" fill="none" stroke-linecap="round"/>
+                <path d="M2 4.5c1.6-1.6 3.7-2.5 6-2.5s4.4.9 6 2.5" stroke="currentColor" stroke-width="1.2" fill="none" stroke-linecap="round"/>
+            </svg>
+            <!-- Battery -->
+            <svg width="27" height="13" viewBox="0 0 27 13" fill="none">
+                <rect x="0.5" y="0.5" width="22" height="12" rx="2.5" stroke="currentColor" stroke-width="1" opacity="0.4"/>
+                <rect x="2" y="2" width="18" height="9" rx="1.5" fill="currentColor"/>
+                <path d="M24 4.5v4a1.5 1.5 0 000-4z" fill="currentColor" opacity="0.4"/>
+            </svg>
+        </div>
+    </div>
+
+    <!-- Main scrollable content -->
+    <main class="chat-scroll-area">
+
+        <!-- Header -->
+        <div class="text-center pt-2 pb-4 px-5">
+            <h1 class="text-xl font-bold tracking-tight" style="color: var(--foreground);">AI 助手</h1>
+            <p class="text-xs mt-1" style="color: var(--muted-foreground);">基于对你的深度理解</p>
+        </div>
+
+        <!-- AI Capability Cards (horizontal scroll) -->
+        <div class="flex gap-3 px-5 pb-5 overflow-x-auto no-scrollbar snap-x snap-mandatory">
+            <!-- Card 1: 每日简报 -->
+            <div class="flex-shrink-0 w-[168px] snap-start rounded-[19.2px] p-4 flex flex-col gap-2.5"
+                 style="background: var(--card); border: 1px solid var(--border);">
+                <div class="w-9 h-9 rounded-full flex items-center justify-center" style="background: var(--brand-500);">
+                    <span data-icon="file" class="w-4.5 h-4.5" style="width:18px;height:18px;color:var(--primary-foreground);-webkit-mask-image:url('../assets/icons/dl_builtin_apple/file.svg');mask-image:url('../assets/icons/dl_builtin_apple/file.svg');"></span>
+                </div>
+                <div>
+                    <h3 class="text-sm font-semibold" style="color: var(--card-foreground);">每日简报</h3>
+                    <p class="text-xs mt-0.5" style="color: var(--muted-foreground);">AI 为你整理的今日摘要</p>
+                </div>
+            </div>
+
+            <!-- Card 2: 智能提醒 -->
+            <div class="flex-shrink-0 w-[168px] snap-start rounded-[19.2px] p-4 flex flex-col gap-2.5 relative"
+                 style="background: var(--card); border: 1px solid var(--border);">
+                <div class="w-9 h-9 rounded-full flex items-center justify-center" style="background: var(--chart-3);">
+                    <span data-icon="star" class="w-4.5 h-4.5" style="width:18px;height:18px;color:var(--primary-foreground);-webkit-mask-image:url('../assets/icons/dl_builtin_apple/star.svg');mask-image:url('../assets/icons/dl_builtin_apple/star.svg');"></span>
+                </div>
+                <div>
+                    <div class="flex items-center gap-2">
+                        <h3 class="text-sm font-semibold" style="color: var(--card-foreground);">智能提醒</h3>
+                        <span class="text-[10px] font-bold px-1.5 py-0.5 rounded-full" style="background: var(--chart-3); color: var(--primary-foreground);">3</span>
+                    </div>
+                    <p class="text-xs mt-0.5" style="color: var(--muted-foreground);">3 条待处理提醒</p>
+                </div>
+            </div>
+
+            <!-- Card 3: 洞察发现 -->
+            <div class="flex-shrink-0 w-[168px] snap-start rounded-[19.2px] p-4 flex flex-col gap-2.5"
+                 style="background: var(--card); border: 1px solid var(--border);">
+                <div class="w-9 h-9 rounded-full flex items-center justify-center" style="background: var(--brand-500);">
+                    <span data-icon="star" class="w-4.5 h-4.5" style="width:18px;height:18px;color:var(--primary-foreground);-webkit-mask-image:url('../assets/icons/dl_builtin_apple/star.svg');mask-image:url('../assets/icons/dl_builtin_apple/star.svg');"></span>
+                </div>
+                <div>
+                    <h3 class="text-sm font-semibold" style="color: var(--card-foreground);">洞察发现</h3>
+                    <p class="text-xs mt-0.5" style="color: var(--muted-foreground);">本周 2 个新发现</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- AI Chat Area -->
+        <div class="flex flex-col gap-4 px-5">
+
+            <!-- AI Message 1 -->
+            <div class="flex gap-2.5 items-start">
+                <!-- AI Avatar -->
+                <div class="w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center" style="background: var(--brand-500);">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                        <circle cx="8" cy="6" r="2.5" fill="white" opacity="0.9"/>
+                        <circle cx="4.5" cy="9.5" r="1.8" fill="white" opacity="0.7"/>
+                        <circle cx="11.5" cy="9.5" r="1.8" fill="white" opacity="0.7"/>
+                        <path d="M5 13c0-1.7 1.3-3 3-3s3 1.3 3 3" stroke="white" stroke-width="1.2" fill="none" stroke-linecap="round" opacity="0.8"/>
+                        <circle cx="8" cy="6" r="4" stroke="white" stroke-width="0.8" fill="none" opacity="0.3"/>
+                    </svg>
+                </div>
+                <!-- Message bubble -->
+                <div class="rounded-[19.2px] rounded-tl-md px-4 py-3 max-w-[280px]" style="background: var(--card); border: 1px solid var(--border);">
+                    <p class="text-[13px] leading-relaxed" style="color: var(--card-foreground);">文东，我注意到你最近的工作节奏比较紧张。本周你有 3 个截止日期接近的项目，建议你优先处理「产品方案」——它的影响范围最大。</p>
+                </div>
+            </div>
+
+            <!-- User Message -->
+            <div class="flex justify-end">
+                <div class="rounded-[19.2px] rounded-tr-md px-4 py-3 max-w-[260px]"
+                     style="background: color-mix(in srgb, var(--brand-500) 15%, var(--card)); border: 1px solid color-mix(in srgb, var(--brand-500) 30%, var(--border));">
+                    <p class="text-[13px] leading-relaxed" style="color: var(--brand-400);">好的，帮我看看产品方案还缺什么</p>
+                </div>
+            </div>
+
+            <!-- AI Message 2 -->
+            <div class="flex gap-2.5 items-start">
+                <div class="w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center" style="background: var(--brand-500);">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                        <circle cx="8" cy="6" r="2.5" fill="white" opacity="0.9"/>
+                        <circle cx="4.5" cy="9.5" r="1.8" fill="white" opacity="0.7"/>
+                        <circle cx="11.5" cy="9.5" r="1.8" fill="white" opacity="0.7"/>
+                        <path d="M5 13c0-1.7 1.3-3 3-3s3 1.3 3 3" stroke="white" stroke-width="1.2" fill="none" stroke-linecap="round" opacity="0.8"/>
+                        <circle cx="8" cy="6" r="4" stroke="white" stroke-width="0.8" fill="none" opacity="0.3"/>
+                    </svg>
+                </div>
+                <div class="rounded-[19.2px] rounded-tl-md px-4 py-3 max-w-[280px]" style="background: var(--card); border: 1px solid var(--border);">
+                    <p class="text-[13px] leading-relaxed" style="color: var(--card-foreground);">根据你的历史数据，类似方案你通常需要 3-4 天完成。当前进度约 60%，主要还差用户调研和竞品分析部分。需要我帮你制定详细的完成计划吗？</p>
+                </div>
+            </div>
+
+            <!-- AI Proactive Suggestion Card -->
+            <div class="rounded-[19.2px] px-4 py-3.5 max-w-[320px]"
+                 style="background: linear-gradient(135deg, color-mix(in srgb, var(--brand-500) 8%, var(--card)), color-mix(in srgb, var(--brand-500) 3%, var(--card))); border: 1px solid var(--border); border-left: 3px solid var(--brand-500);">
+                <p class="text-xs font-semibold mb-1" style="color: var(--brand-400);">主动建议</p>
+                <p class="text-[13px] leading-relaxed" style="color: var(--card-foreground);">基于你的目标「每月读 2 本书」，你本月还没有开始新的阅读，推荐《系统之美》——和你的工作方向很匹配。</p>
+            </div>
+
+        </div>
+
+        <!-- AI Understanding Indicators -->
+        <div class="mt-6 px-5 pb-6">
+            <h2 class="text-xs font-semibold mb-3 tracking-wide uppercase" style="color: var(--muted-foreground); letter-spacing: 0.06em;">AI 对你的理解</h2>
+            <div class="flex gap-2.5 overflow-x-auto no-scrollbar">
+                <!-- Pill 1 -->
+                <div class="flex-shrink-0 flex items-center gap-2 rounded-full px-3.5 py-2"
+                     style="background: var(--card); border: 1px solid var(--border);">
+                    <span class="text-xs" style="color: var(--muted-foreground);">记忆完整度</span>
+                    <span class="text-xs font-bold" style="color: var(--brand-400);">87%</span>
+                </div>
+                <!-- Pill 2 -->
+                <div class="flex-shrink-0 flex items-center gap-2 rounded-full px-3.5 py-2"
+                     style="background: var(--card); border: 1px solid var(--border);">
+                    <span class="text-xs" style="color: var(--muted-foreground);">理解深度</span>
+                    <span class="text-xs font-bold" style="color: var(--brand-400);">72%</span>
+                </div>
+                <!-- Pill 3 -->
+                <div class="flex-shrink-0 flex items-center gap-2 rounded-full px-3.5 py-2"
+                     style="background: var(--card); border: 1px solid var(--border);">
+                    <span class="text-xs" style="color: var(--muted-foreground);">预测准确</span>
+                    <span class="text-xs font-bold" style="color: var(--brand-400);">81%</span>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Fixed Message Input Bar -->
+    <div class="fixed bottom-[83px] left-1/2 -translate-x-1/2 w-full max-w-[390px] px-4 pb-2 pt-2 z-40"
+         style="background: linear-gradient(to top, var(--background) 70%, transparent);">
+        <div class="flex items-center gap-2.5">
+            <div class="flex-1 flex items-center rounded-full px-4 h-[44px]"
+                 style="background: var(--card); border: 1px solid var(--border);">
+                <input type="text" placeholder="问 AI 任何关于你的问题..."
+                       class="flex-1 bg-transparent border-none outline-none text-sm"
+                       style="color: var(--foreground); font-family: var(--font-sans);">
+            </div>
+            <button class="w-[44px] h-[44px] rounded-full flex items-center justify-center flex-shrink-0"
+                    style="background: var(--brand-500);">
+                <span style="width:20px;height:20px;color:var(--primary-foreground);-webkit-mask-image:url('../assets/icons/dl_builtin_apple/send-horizontal.svg');mask-image:url('../assets/icons/dl_builtin_apple/send-horizontal.svg');display:inline-block;background-color:currentColor;-webkit-mask-size:contain;mask-size:contain;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;-webkit-mask-position:center;mask-position:center;"></span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Bottom Tab Bar -->
+    <nav class="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[390px] z-50"
+         style="background: color-mix(in srgb, var(--background) 85%, transparent); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border-top: 1px solid var(--border);"
+         aria-label="主导航">
+        <div class="flex items-center justify-around pt-2 pb-7 px-2">
+            <!-- Today -->
+            <a href="#" data-dom-id="tab-today" class="flex flex-col items-center gap-0.5 min-w-[56px] py-1" style="color: var(--muted-foreground);">
+                <span style="width:22px;height:22px;-webkit-mask-image:url('../assets/icons/dl_builtin_apple/house.svg');mask-image:url('../assets/icons/dl_builtin_apple/house.svg');display:inline-block;background-color:currentColor;-webkit-mask-size:contain;mask-size:contain;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;-webkit-mask-position:center;mask-position:center;"></span>
+                <span class="text-[10px]">今天</span>
+            </a>
+            <!-- Timeline -->
+            <a href="#" data-dom-id="tab-timeline" class="flex flex-col items-center gap-0.5 min-w-[56px] py-1" style="color: var(--muted-foreground);">
+                <span style="width:22px;height:22px;-webkit-mask-image:url('../assets/icons/dl_builtin_apple/circle-play.svg');mask-image:url('../assets/icons/dl_builtin_apple/circle-play.svg');display:inline-block;background-color:currentColor;-webkit-mask-size:contain;mask-size:contain;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;-webkit-mask-position:center;mask-position:center;"></span>
+                <span class="text-[10px]">时间线</span>
+            </a>
+            <!-- Capture (center, larger) -->
+            <a href="#" data-dom-id="tab-capture" class="flex flex-col items-center gap-0.5 min-w-[56px] py-1" style="color: var(--muted-foreground);">
+                <div class="w-10 h-10 rounded-full flex items-center justify-center -mt-3"
+                     style="background: var(--card); border: 2px solid var(--border);">
+                    <span style="width:20px;height:20px;-webkit-mask-image:url('../assets/icons/dl_builtin_apple/circle-plus.svg');mask-image:url('../assets/icons/dl_builtin_apple/circle-plus.svg');display:inline-block;background-color:currentColor;-webkit-mask-size:contain;mask-size:contain;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;-webkit-mask-position:center;mask-position:center;"></span>
+                </div>
+                <span class="text-[10px] -mt-0.5">捕捉</span>
+            </a>
+            <!-- AI (active) -->
+            <a href="#" class="flex flex-col items-center gap-0.5 min-w-[56px] py-1" style="color: var(--brand-400);">
+                <span style="width:22px;height:22px;-webkit-mask-image:url('../assets/icons/dl_builtin_apple/message-circle-more.svg');mask-image:url('../assets/icons/dl_builtin_apple/message-circle-more.svg');display:inline-block;background-color:currentColor;-webkit-mask-size:contain;mask-size:contain;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;-webkit-mask-position:center;mask-position:center;"></span>
+                <span class="text-[10px] font-semibold">AI</span>
+            </a>
+            <!-- Me -->
+            <a href="#" data-dom-id="tab-me" class="flex flex-col items-center gap-0.5 min-w-[56px] py-1" style="color: var(--muted-foreground);">
+                <span style="width:22px;height:22px;-webkit-mask-image:url('../assets/icons/dl_builtin_apple/user.svg');mask-image:url('../assets/icons/dl_builtin_apple/user.svg');display:inline-block;background-color:currentColor;-webkit-mask-size:contain;mask-size:contain;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;-webkit-mask-position:center;mask-position:center;"></span>
+                <span class="text-[10px]">我的</span>
+            </a>
+        </div>
+    </nav>
+
+    <!-- Custom styles (moved from <head>) -->
+    <style id="component-vars">
+/* ═══════════════════════════════════════════════════════════════
+   components.css — Design System Component Definitions
+   Auto-extracted from preview/component-*.html
+   DO NOT EDIT MANUALLY — regenerate via extract-components-css.mjs
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── Button ────────────────────────────────────────────────── */
+body{margin:0;padding:12px;background:var(--background);color:var(--foreground);font-family:var(--font-sans);letter-spacing:var(--tracking-normal)}.row{display:flex;align-items:center;gap:calc(var(--spacing)*3);flex-wrap:wrap;margin:0 0 calc(var(--spacing)*3)}.label{min-width:72px;color:var(--muted-foreground);font:600 10px/1 var(--font-mono);letter-spacing:.12em;text-transform:uppercase}.btn{display:inline-flex;align-items:center;justify-content:center;gap:calc(var(--spacing)*1.5);height:40px;padding:0 20px;border:none;border-radius:calc(var(--radius)*2);background:transparent;color:var(--foreground);font:600 14px/1 var(--font-sans);letter-spacing:var(--tracking-normal);white-space:nowrap;box-shadow:var(--shadow-sm);cursor:pointer;transition:background-color .18s ease,color .18s ease,opacity .18s ease,filter .18s ease}.btn:focus-visible{outline:2px solid var(--ring);outline-offset:2px}.btn:disabled{opacity:.42;cursor:not-allowed}.btn-primary{background:var(--primary);color:var(--primary-foreground)}.btn-primary:hover{filter:brightness(.96)}.btn-secondary{height:48px;padding:0 24px;background:var(--secondary);color:var(--secondary-foreground)}.btn-secondary:hover{background:var(--muted)}.btn-text{height:48px;padding:0 4px;box-shadow:none}.btn-text:hover{color:var(--primary)}.btn-lg{height:56px;padding:0 28px;font-size:16px}.divider{border:0;border-top:1px solid var(--border);margin:calc(var(--spacing)*4) 0}
+
+/* ── Card ──────────────────────────────────────────────────── */
+body{margin:0;padding:12px;background:var(--background);color:var(--foreground);font:500 14px/1.45 var(--font-sans);letter-spacing:var(--tracking-normal)}.row{display:flex;align-items:flex-start;gap:12px;flex-wrap:wrap}.label{width:72px;padding-top:10px;color:var(--muted-foreground);font:700 10px/1 var(--font-sans);letter-spacing:.12em;text-transform:uppercase}.divider{margin:12px 0;border:0;border-top:1px solid var(--border)}.card{width:188px;min-height:148px;padding:calc(var(--spacing)*5);display:flex;flex-direction:column;justify-content:space-between;background:var(--card);color:var(--card-foreground);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow-md);transition:transform .18s ease,box-shadow .18s ease}.card:hover{transform:translateY(-2px);box-shadow:var(--shadow-lg)}.card.disabled,.card.disabled:hover{opacity:.5;transform:none;box-shadow:var(--shadow-md)}.eyebrow,.meta{color:var(--muted-foreground);font-size:11px;letter-spacing:.08em;text-transform:uppercase}.title{margin:6px 0 8px;font-size:18px;line-height:1.15}.body-copy{margin:0;color:var(--muted-foreground);font-size:13px}.cta{display:inline-flex;align-items:center;justify-content:center;width:max-content;margin-top:12px;padding:calc(var(--spacing)*2) calc(var(--spacing)*3.5);border-radius:999px;background:var(--primary);color:var(--primary-foreground);font-size:12px;font-weight:700;text-decoration:none}.media{aspect-ratio:4/3;border-radius:calc(var(--radius) - 4px);background:linear-gradient(135deg,var(--secondary),var(--accent));border:1px solid var(--border)}.media-card{min-height:212px;padding:calc(var(--spacing)*4)}.media-card .title{font-size:16px;margin:10px 0 6px}.price{font-size:12px;color:var(--muted-foreground)}.dark{background:var(--card);color:var(--card-foreground)}
+
+/* ── Input ─────────────────────────────────────────────────── */
+body{margin:0;padding:12px;background:var(--background);color:var(--foreground);font:500 13px/1.4 var(--font-sans)}.row{display:flex;align-items:center;gap:calc(var(--spacing)*3);flex-wrap:wrap;margin-bottom:8px}.label{min-width:58px;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted-foreground)}.divider{border:0;border-top:1px solid var(--border);margin:10px 0}.surface{display:flex;gap:calc(var(--spacing)*2);padding:calc(var(--spacing)*3);border:1px solid var(--border);border-radius:var(--radius);background:var(--card);box-shadow:var(--shadow-sm)}.dark{background:var(--background);color:var(--foreground)}.field{display:flex;align-items:center;gap:calc(var(--spacing)*2);min-width:240px;height:44px;padding:0 calc(var(--spacing)*3);border:1px solid var(--input);border-radius:var(--radius);background:var(--background);color:var(--foreground);box-shadow:var(--shadow-xs)}.field.small{height:40px}.field:focus-within{border-color:var(--ring);box-shadow:0 0 0 1px var(--ring)}.field.disabled{opacity:.55}.icon,.clear{padding:0;border:0;background:transparent;color:var(--icon-muted);font:inherit}.icon{font-size:13px}.control{flex:1;border:0;outline:0;background:transparent;color:inherit;font:inherit}.control::placeholder{color:var(--muted-foreground)}
+
+/* ── Navigation ────────────────────────────────────────────── */
+body{margin:0;padding:12px;background:var(--background);color:var(--foreground);font:500 13px/1.4 var(--font-sans);letter-spacing:var(--tracking-normal)}.row{display:flex;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:8px}.label{width:72px;padding-top:10px;color:var(--muted-foreground);font:700 10px/1 var(--font-mono);letter-spacing:.12em;text-transform:uppercase}.divider{margin:12px 0;border:0;border-top:1px solid var(--border)}.webbar,.mobile{border:1px solid var(--border);box-shadow:var(--shadow-sm)}.webbar{display:flex;align-items:center;gap:calc(var(--spacing)*2);min-width:320px;height:44px;padding:0 calc(var(--spacing)*3);border-radius:var(--radius);background:var(--sidebar)}.brand{font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;white-space:nowrap}.rail{display:flex;gap:calc(var(--spacing)*1.5);margin-left:auto}.link,.tab{display:inline-flex;align-items:center;justify-content:center;border-radius:999px;color:inherit;text-decoration:none;white-space:nowrap;transition:background-color .18s ease,color .18s ease,opacity .18s ease}.link{height:32px;padding:0 calc(var(--spacing)*2.5)}.link:hover,.tab:hover{background:var(--secondary)}.link:focus-visible,.tab:focus-visible{outline:2px solid var(--ring);outline-offset:2px}.dark{background:var(--sidebar);color:var(--foreground)}.disabled{opacity:.48}.disabled .link,.disabled .tab{pointer-events:none}.mobile{padding:calc(var(--spacing)*2);border-radius:calc(var(--radius)*1.1);background:var(--card)}.screen{display:flex;align-items:flex-end;justify-content:center;width:188px;height:164px;padding:calc(var(--spacing)*3);border-radius:calc(var(--radius)*.9);background:linear-gradient(180deg,var(--background),var(--secondary))}.tabbar{display:flex;gap:calc(var(--spacing)*1.5);padding:calc(var(--spacing)*1.5);border:1px solid var(--border);border-radius:999px;background:var(--card);box-shadow:var(--shadow-md)}.tab{flex-direction:column;gap:2px;min-width:56px;height:56px;padding:0 calc(var(--spacing)*1.5);font-size:11px;text-align:center}.dot{width:18px;height:18px;border-radius:999px;background:var(--secondary);box-shadow:inset 0 0 0 1px var(--border)}.tab:hover .dot{background:var(--primary)}
+    </style>
+    <style>
+      .no-scrollbar::-webkit-scrollbar { display: none; }
+      .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+      [data-icon] {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        -webkit-mask-size: contain;
+        mask-size: contain;
+        -webkit-mask-repeat: no-repeat;
+        mask-repeat: no-repeat;
+        -webkit-mask-position: center;
+        mask-position: center;
+        background-color: currentColor;
+      }
+      /* Page-specific overrides */
+      body.page-body {
+        margin: 0;
+        padding: 0;
+        background: var(--background);
+        color: var(--foreground);
+        font-family: var(--font-sans);
+        max-width: 390px;
+        margin: 0 auto;
+        min-height: 844px;
+        position: relative;
+        overflow-x: hidden;
+      }
+      .chat-scroll-area {
+        padding-bottom: 160px;
+      }
+    </style>
+
+</body>
+</html>

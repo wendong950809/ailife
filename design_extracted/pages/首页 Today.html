@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="light" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>首页 — 知伴</title>
+    <style id="theme-vars">
+/* 知伴 — Brand Design Tokens */
+/* AI 驱动的个人数字生命系统 */
+/* Professional Blue × Clean White */
+
+:root {
+  /* ── Color System ── */
+  --color-primary: #4A6CF7;
+  --color-primary-light: #6B8AFF;
+  --color-primary-dark: #3A56D4;
+  --color-primary-tint: rgba(74, 108, 247, 0.08);
+  --color-primary-tint-md: rgba(74, 108, 247, 0.16);
+
+  /* Neutrals — clean cool gray */
+  --color-bg: #F5F7FA;
+  --color-bg-secondary: #EEEEF2;
+  --color-bg-tertiary: #E5E7ED;
+  --color-surface: #FFFFFF;
+  --color-border: #E1E4EA;
+  --color-border-light: #ECF0F5;
+
+  /* Text */
+  --color-text-primary: #1A1D26;
+  --color-text-secondary: #6B7085;
+  --color-text-tertiary: #9DA3B4;
+  --color-text-inverse: #FFFFFF;
+  --color-text-link: #4A6CF7;
+
+  /* State Colors */
+  --state-success: #4A9A6F;
+  --state-warning: #C4964A;
+  --state-error: #C45C5C;
+  --state-info: #5C8EC4;
+
+  /* ── Typography System ── */
+  --font-display: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', 'Noto Sans SC', 'Helvetica Neue', sans-serif;
+  --font-body: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', 'Noto Sans SC', 'Helvetica Neue', sans-serif;
+  --font-mono: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+
+  /* Type Scale */
+  --text-xs: 0.6875rem;
+  --text-sm: 0.8125rem;
+  --text-base: 0.9375rem;
+  --text-lg: 1.0625rem;
+  --text-xl: 1.25rem;
+  --text-2xl: 1.5rem;
+  --text-3xl: 1.875rem;
+  --text-4xl: 2.25rem;
+
+  /* Line Height */
+  --leading-tight: 1.2;
+  --leading-snug: 1.35;
+  --leading-normal: 1.5;
+  --leading-relaxed: 1.65;
+
+  /* Letter Spacing */
+  --tracking-tight: -0.01em;
+  --tracking-normal: 0;
+  --tracking-wide: 0.02em;
+
+  /* Font Weight */
+  --weight-normal: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+  --weight-bold: 700;
+
+  /* ── Spacing System ── */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+
+  /* ── Radius System (restrained) ── */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 16px;
+  --radius-full: 9999px;
+
+  /* ── Shadow System (border-first, low alpha) ── */
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.03);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.03), 0 1px 2px rgba(0, 0, 0, 0.02);
+  --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.04);
+  --shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.04);
+  --shadow-xl: 0 8px 32px rgba(0, 0, 0, 0.05);
+  --shadow-float: 0 12px 40px rgba(0, 0, 0, 0.06);
+
+  /* ── Transition ── */
+  --transition-fast: 150ms ease;
+  --transition-normal: 250ms ease;
+  --transition-slow: 350ms ease;
+
+  /* ── Semantic Aliases (for fill-html-head.mjs) ── */
+  --color-foreground: #1A1D26;
+  --color-card: #FFFFFF;
+  --color-muted: #9DA3B4;
+  --color-accent: #4A6CF7;
+  --color-radius-sm: 6px;
+  --color-radius-md: 10px;
+  --color-radius-lg: 14px;
+  --color-radius-xl: 16px;
+}
+
+/* Dark mode */
+html.dark {
+  --color-bg: #141414;
+  --color-bg-secondary: #1C1C1C;
+  --color-bg-tertiary: #262626;
+  --color-surface: #1C1C1C;
+  --color-border: #333333;
+  --color-border-light: #262626;
+  --color-text-primary: #F0F0F0;
+  --color-text-secondary: #999999;
+  --color-text-tertiary: #666666;
+  --color-text-inverse: #1A1A1A;
+  --color-primary-tint: rgba(74, 124, 111, 0.12);
+  --color-primary-tint-md: rgba(74, 124, 111, 0.2);
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.1);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06);
+  --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.14);
+  --shadow-xl: 0 8px 32px rgba(0, 0, 0, 0.18);
+  --shadow-float: 0 12px 40px rgba(0, 0, 0, 0.22);
+}
+
+/* ── Typography Classes ── */
+.ds-display-lg {
+  font-family: var(--font-display);
+  font-size: var(--text-4xl);
+  font-weight: var(--weight-bold);
+  line-height: var(--leading-tight);
+  letter-spacing: var(--tracking-tight);
+  color: var(--color-text-primary);
+}
+
+.ds-display-md {
+  font-family: var(--font-display);
+  font-size: var(--text-3xl);
+  font-weight: var(--weight-bold);
+  line-height: var(--leading-tight);
+  letter-spacing: var(--tracking-tight);
+  color: var(--color-text-primary);
+}
+
+.ds-title-lg {
+  font-family: var(--font-display);
+  font-size: var(--text-2xl);
+  font-weight: var(--weight-semibold);
+  line-height: var(--leading-snug);
+  letter-spacing: var(--tracking-tight);
+  color: var(--color-text-primary);
+}
+
+.ds-title-md {
+  font-family: var(--font-display);
+  font-size: var(--text-xl);
+  font-weight: var(--weight-semibold);
+  line-height: var(--leading-snug);
+  color: var(--color-text-primary);
+}
+
+.ds-title-sm {
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+  font-weight: var(--weight-semibold);
+  line-height: var(--leading-snug);
+  color: var(--color-text-primary);
+}
+
+.ds-body-lg {
+  font-family: var(--font-body);
+  font-size: var(--text-lg);
+  font-weight: var(--weight-normal);
+  line-height: var(--leading-normal);
+  color: var(--color-text-primary);
+}
+
+.ds-body {
+  font-family: var(--font-body);
+  font-size: var(--text-base);
+  font-weight: var(--weight-normal);
+  line-height: var(--leading-normal);
+  color: var(--color-text-primary);
+}
+
+.ds-body-sm {
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-normal);
+  line-height: var(--leading-normal);
+  color: var(--color-text-primary);
+}
+
+.ds-caption {
+  font-family: var(--font-body);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-medium);
+  line-height: var(--leading-normal);
+  color: var(--color-text-tertiary);
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+}
+
+/* ── Brand Component Tokens ── */
+.ds-card {
+  background: var(--color-surface);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border-light);
+  padding: var(--space-5);
+}
+
+.ds-card-elevated {
+  background: var(--color-surface);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  padding: var(--space-5);
+}
+
+.ds-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  height: 44px;
+  padding: 0 var(--space-6);
+  background: var(--color-primary);
+  color: #FFFFFF;
+  font-family: var(--font-body);
+  font-size: var(--text-base);
+  font-weight: var(--weight-semibold);
+  border-radius: var(--radius-md);
+  transition: all var(--transition-fast);
+}
+
+.ds-btn-primary:hover {
+  background: var(--color-primary-dark);
+}
+
+.ds-btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  height: 44px;
+  padding: 0 var(--space-6);
+  background: var(--color-primary-tint);
+  color: var(--color-primary);
+  font-family: var(--font-body);
+  font-size: var(--text-base);
+  font-weight: var(--weight-semibold);
+  border-radius: var(--radius-md);
+  transition: all var(--transition-fast);
+}
+
+.ds-input {
+  height: 44px;
+  padding: 0 var(--space-4);
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  font-family: var(--font-body);
+  font-size: var(--text-base);
+  color: var(--color-text-primary);
+  transition: border-color var(--transition-fast);
+}
+
+.ds-input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-tint);
+}
+
+.ds-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-3);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-medium);
+  border-radius: var(--radius-full);
+  background: var(--color-primary-tint);
+  color: var(--color-primary);
+}
+
+.ds-divider {
+  height: 1px;
+  background: var(--color-border-light);
+  border: none;
+}
+
+.ds-skeleton {
+  background: linear-gradient(90deg, var(--color-bg-tertiary) 25%, var(--color-bg-secondary) 50%, var(--color-bg-tertiary) 75%);
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.5s ease-in-out infinite;
+  border-radius: var(--radius-sm);
+}
+
+@keyframes skeleton-shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.3.1/dist/index.global.js"></script>
+    <script src="https://unpkg.com/lucide@1.8.0/dist/umd/lucide.min.js"></script>
+    <style type="text/tailwindcss">
+  @theme inline {
+    --color-foreground: var(--color-foreground);
+    --color-card: var(--color-card);
+    --color-primary: var(--color-primary);
+    --color-muted: var(--color-muted);
+    --color-accent: var(--color-accent);
+    --color-border: var(--color-border);
+    --color-background: var(--color-bg);
+    --radius-sm: var(--color-radius-sm);
+    --radius-md: var(--color-radius-md);
+    --radius-lg: var(--color-radius-lg);
+    --radius-xl: var(--color-radius-xl);
+  }
+  @layer base {
+    body { background: var(--color-bg); color: var(--color-foreground); }
+    td, th { @apply break-words; word-break: break-all; word-break: auto-phrase; }
+    th { @apply whitespace-nowrap; }
+  }
+    </style>
+    <style id="semantic-token-fallback">
+      .bg-foreground { background-color: var(--color-foreground); }
+      .text-foreground { color: var(--color-foreground); }
+      .border-foreground { border-color: var(--color-foreground); }
+      .ring-foreground { --tw-ring-color: var(--color-foreground); }
+      .bg-card { background-color: var(--color-card); }
+      .text-card { color: var(--color-card); }
+      .border-card { border-color: var(--color-card); }
+      .ring-card { --tw-ring-color: var(--color-card); }
+      .bg-primary { background-color: var(--color-primary); }
+      .text-primary { color: var(--color-primary); }
+      .border-primary { border-color: var(--color-primary); }
+      .ring-primary { --tw-ring-color: var(--color-primary); }
+      .bg-muted { background-color: var(--color-muted); }
+      .text-muted { color: var(--color-muted); }
+      .border-muted { border-color: var(--color-muted); }
+      .ring-muted { --tw-ring-color: var(--color-muted); }
+      .bg-accent { background-color: var(--color-accent); }
+      .text-accent { color: var(--color-accent); }
+      .border-accent { border-color: var(--color-accent); }
+      .ring-accent { --tw-ring-color: var(--color-accent); }
+      .bg-border { background-color: var(--color-border); }
+      .text-border { color: var(--color-border); }
+      .border-border { border-color: var(--color-border); }
+      .ring-border { --tw-ring-color: var(--color-border); }
+      .bg-background { background-color: var(--color-bg); }
+      .text-background { color: var(--color-bg); }
+      .border-background { border-color: var(--color-bg); }
+      .ring-background { --tw-ring-color: var(--color-bg); }
+    </style>
+    <style>
+      .no-scrollbar::-webkit-scrollbar { display: none; }
+      .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+      [data-icon] {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        -webkit-mask-size: contain;
+        mask-size: contain;
+        -webkit-mask-repeat: no-repeat;
+        mask-repeat: no-repeat;
+        -webkit-mask-position: center;
+        mask-position: center;
+        background-color: currentColor;
+      }
+    </style>
+</head>
+<body class="mx-auto max-w-mobile min-h-screen" style="background:#F5F7FA;color:#1A1D26;">
+<div class="pt-12 px-5 pb-24">
+<!-- Header -->
+<div class="mb-6">
+  <h1 class="text-2xl font-bold" style="color:#1A1D26;">早上好，文东</h1>
+  <p class="text-sm mt-1" style="color:#9DA3B4;">7月16日 星期三</p>
+  <p class="text-sm mt-0.5" style="color:#6B7085;">有什么想跟我聊的？</p>
+</div>
+
+<!-- 每日简报 -->
+<div class="bg-white rounded-2xl p-4 mb-3" style="border:1px solid #ECF0F5;border-left:3px solid #4A6CF7;">
+  <div class="flex items-center gap-2 mb-3">
+    <div class="w-5 h-5 rounded-full flex items-center justify-center" style="background:rgba(74,108,247,0.12);">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#4A6CF7" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+    </div>
+    <span class="text-sm font-semibold" style="color:#1A1D26;">每日简报</span>
+  </div>
+  <div class="flex gap-3 mb-3">
+    <div class="flex-1 text-center py-2 rounded-lg" style="background:#F5F7FA;">
+      <div class="text-lg font-bold" style="color:#4A6CF7;">3</div>
+      <div class="text-xs" style="color:#6B7085;">待办</div>
+    </div>
+    <div class="flex-1 text-center py-2 rounded-lg" style="background:#F5F7FA;">
+      <div class="text-lg font-bold" style="color:#4A6CF7;">2</div>
+      <div class="text-xs" style="color:#6B7085;">日程</div>
+    </div>
+    <div class="flex-1 text-center py-2 rounded-lg" style="background:#F5F7FA;">
+      <div class="text-lg font-bold" style="color:#4A6CF7;">1</div>
+      <div class="text-xs" style="color:#6B7085;">提醒</div>
+    </div>
+  </div>
+  <p class="text-xs leading-relaxed" style="color:#6B7085;">今天下午有家长会，妈妈生日还有3天。最近运动频率下降，建议今天跑步。</p>
+</div>
+
+<!-- 综合状态评分 -->
+<div class="bg-white rounded-2xl p-4 mb-3" style="border:1px solid #ECF0F5;">
+  <div class="flex items-center gap-2 mb-3">
+    <span class="text-xs" style="color:#9DA3B4;">综合人生状态</span>
+  </div>
+  <div class="flex items-end gap-1 mb-4">
+    <span class="text-4xl font-bold" style="color:#4A6CF7;">72</span>
+    <span class="text-sm mb-1" style="color:#9DA3B4;">/100</span>
+  </div>
+  <div class="space-y-2.5">
+    <div class="flex items-center gap-3">
+      <span class="text-xs w-8" style="color:#6B7085;">事业</span>
+      <div class="flex-1 h-1.5 rounded-full" style="background:#ECF0F5;"><div class="h-full rounded-full" style="width:78%;background:#4A6CF7;"></div></div>
+      <span class="text-xs w-8 text-right" style="color:#6B7085;">78%</span>
+    </div>
+    <div class="flex items-center gap-3">
+      <span class="text-xs w-8" style="color:#6B7085;">家庭</span>
+      <div class="flex-1 h-1.5 rounded-full" style="background:#ECF0F5;"><div class="h-full rounded-full" style="width:65%;background:#4A6CF7;"></div></div>
+      <span class="text-xs w-8 text-right" style="color:#6B7085;">65%</span>
+    </div>
+    <div class="flex items-center gap-3">
+      <span class="text-xs w-8" style="color:#6B7085;">成长</span>
+      <div class="flex-1 h-1.5 rounded-full" style="background:#ECF0F5;"><div class="h-full rounded-full" style="width:82%;background:#4A6CF7;"></div></div>
+      <span class="text-xs w-8 text-right" style="color:#6B7085;">82%</span>
+    </div>
+    <div class="flex items-center gap-3">
+      <span class="text-xs w-8" style="color:#6B7085;">健康</span>
+      <div class="flex-1 h-1.5 rounded-full" style="background:#ECF0F5;"><div class="h-full rounded-full" style="width:60%;background:#C45C5C;"></div></div>
+      <span class="text-xs w-8 text-right" style="color:#6B7085;">60%</span>
+    </div>
+  </div>
+</div>
+
+<!-- 今日重点 -->
+<div class="bg-white rounded-2xl p-4 mb-3" style="border:1px solid #ECF0F5;">
+  <p class="text-sm font-semibold mb-3" style="color:#1A1D26;">今日重点</p>
+  <div class="space-y-3">
+    <div class="flex items-center gap-3">
+      <div class="w-5 h-5 rounded border flex-shrink-0" style="border-color:#E1E4EA;"></div>
+      <span class="text-sm flex-1" style="color:#1A1D26;">提交季度报告</span>
+      <span class="text-xs px-2 py-0.5 rounded-full" style="background:#F5F7FA;color:#6B7085;">工作</span>
+    </div>
+    <div class="flex items-center gap-3">
+      <div class="w-5 h-5 rounded border flex-shrink-0" style="border-color:#E1E4EA;"></div>
+      <span class="text-sm flex-1" style="color:#1A1D26;">下午3:00 家长会</span>
+      <span class="text-xs px-2 py-0.5 rounded-full" style="background:#F5F7FA;color:#6B7085;">家庭</span>
+    </div>
+    <div class="flex items-center gap-3">
+      <div class="w-5 h-5 rounded border flex-shrink-0" style="border-color:#E1E4EA;"></div>
+      <span class="text-sm flex-1" style="color:#1A1D26;">跑步 5km</span>
+      <span class="text-xs px-2 py-0.5 rounded-full" style="background:#F5F7FA;color:#6B7085;">健康</span>
+    </div>
+  </div>
+</div>
+
+<!-- 今日发现 -->
+<div class="bg-white rounded-2xl p-4 mb-3" style="border:1px solid #ECF0F5;">
+  <div class="flex items-center gap-2 mb-2">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#4A6CF7" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+    <span class="text-xs font-semibold" style="color:#4A6CF7;">今日发现</span>
+  </div>
+  <p class="text-xs leading-relaxed" style="color:#6B7085;">最近30天，你的工作时间增加了32%，家庭陪伴时间下降了15%。建议本周安排一次家庭活动。</p>
+</div>
+
+<!-- 风险提醒 -->
+<div class="rounded-2xl p-4 mb-3" style="background:rgba(196,92,92,0.06);border:1px solid rgba(196,92,92,0.12);">
+  <div class="flex items-center gap-2 mb-1">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#C45C5C" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
+    <span class="text-xs font-semibold" style="color:#C45C5C;">风险提醒</span>
+  </div>
+  <p class="text-xs leading-relaxed" style="color:#6B7085;">连续工作已超过30天，建议安排至少一天的休息</p>
+</div>
+
+<!-- Quick record FAB -->
+<div class="fixed z-40" style="bottom:80px;right:20px;">
+  <div class="w-12 h-12 rounded-full flex items-center justify-center" style="background:#4A6CF7;box-shadow:0 2px 12px rgba(74,108,247,0.3);">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+  </div>
+</div>
+</div>
+
+<!-- Bottom Tab Bar -->
+<div class="fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-xl" style="border-top:1px solid #ECF0F5;">
+<nav class="flex items-center justify-around px-2 pt-2 pb-6" style="max-width:393px;margin:0 auto;">
+<a class="flex flex-col items-center gap-0.5 w-14" data-dom-id="tab-today" style="color:#9DA3B4;">
+<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+<span class="text-[10px] font-medium">首页</span>
+</a>
+<a class="flex flex-col items-center gap-0.5 w-14" data-dom-id="tab-timeline" style="color:#9DA3B4;">
+<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2v20"/><circle cx="12" cy="6" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="18" r="1.5"/></svg>
+<span class="text-[10px] font-medium">时间</span>
+</a>
+<a class="flex flex-col items-center gap-0.5 w-14" data-dom-id="tab-chat" style="color:#9DA3B4;">
+<svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" stroke="none" opacity="0.5"><path d="M12 2l2.09 6.26L20.18 9l-5.27 4.74L16.82 20 12 16.27 7.18 20l1.91-6.26L3.82 9l6.09-.74L12 2z"/></svg>
+<span class="text-[10px] font-medium">知伴</span>
+</a>
+<a class="flex flex-col items-center gap-0.5 w-14" data-dom-id="tab-me" style="color:#9DA3B4;">
+<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="8" r="4"/><path d="M20 21a8 8 0 10-16 0"/></svg>
+<span class="text-[10px] font-medium">我的</span>
+</a>
+</nav>
+</div>
+
+    <style>
+html{background:#F5F7FA}
+body{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text','Noto Sans SC',sans-serif}
+::-webkit-scrollbar{display:none}
+</style>
+</body>
+</html>

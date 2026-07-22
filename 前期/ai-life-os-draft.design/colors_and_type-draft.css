@@ -1,0 +1,120 @@
+/* AI Life OS — Warm Minimal Light Theme (draft) */
+/* Based on Apple Design Library tokens, overridden for warm light aesthetic */
+
+:root {
+  /* === Core Brand === */
+  --brand-50: #fef7f0;
+  --brand-100: #fdebd6;
+  --brand-200: #f9d4a8;
+  --brand-300: #f5b370;
+  --brand-400: #f0924a;
+  --brand-500: #e8732a;
+  --brand-600: #d45a1b;
+  --brand-700: #b04618;
+  --brand-800: #8c3916;
+  --brand-900: #733115;
+
+  --apple-primary: #e8732a;
+  --apple-primary-hover: #d45a1b;
+  --apple-primary-light: rgba(232, 115, 42, 0.1);
+  --apple-primary-lighter: rgba(232, 115, 42, 0.05);
+
+  /* === Surfaces === */
+  --apple-background: #faf8f5;
+  --apple-secondary-background: #f5f0ea;
+  --apple-tertiary-background: #efe8df;
+  --apple-card: #ffffff;
+  --apple-card-secondary: #faf8f5;
+  --apple-grouped-background: #f2ece4;
+
+  /* === Text === */
+  --apple-foreground: #1d1d1f;
+  --apple-secondary-foreground: #424245;
+  --apple-tertiary-foreground: #6e6e73;
+  --apple-muted: #8e8e93;
+  --apple-foreground-on-primary: #ffffff;
+
+  /* === Borders & Separators === */
+  --apple-border: rgba(0, 0, 0, 0.06);
+  --apple-separator: rgba(0, 0, 0, 0.08);
+  --apple-border-light: rgba(0, 0, 0, 0.04);
+
+  /* === Accent Colors === */
+  --apple-accent: #e8732a;
+  --apple-success: #34c759;
+  --apple-warning: #ff9f0a;
+  --apple-danger: #ff3b30;
+  --apple-info: #5ac8fa;
+
+  /* === Fill Colors === */
+  --apple-fill-primary: rgba(0, 0, 0, 0.04);
+  --apple-fill-secondary: rgba(0, 0, 0, 0.06);
+  --apple-fill-tertiary: rgba(0, 0, 0, 0.08);
+
+  /* === Shadows === */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.08);
+
+  /* === Chart Colors === */
+  --chart-1: #e8732a;
+  --chart-2: #5ac8fa;
+  --chart-3: #ff9f0a;
+  --chart-4: #af52de;
+  --chart-5: #34c759;
+
+  /* === State Colors === */
+  --state-success: #34c759;
+  --state-warning: #ff9f0a;
+  --state-danger: #ff3b30;
+  --state-info: #5ac8fa;
+
+  /* === Typography === */
+  --font-sans: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+
+  --text-xs: 0.6875rem;
+  --text-sm: 0.75rem;
+  --text-base: 0.875rem;
+  --text-lg: 1rem;
+  --text-xl: 1.25rem;
+  --text-2xl: 1.5rem;
+  --text-3xl: 2rem;
+
+  /* === Radius === */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 19.2px;
+  --radius-xl: 24px;
+  --radius-full: 9999px;
+
+  /* === Spacing === */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+
+  /* @theme bridge for Tailwind */
+  --primary: var(--apple-primary);
+  --background: var(--apple-background);
+  --foreground: var(--apple-foreground);
+  --muted: var(--apple-muted);
+  --accent: var(--apple-accent);
+  --card: var(--apple-card);
+  --border: var(--apple-border);
+}
+
+/* === Dark mode override (unused but required for structure) === */
+html.dark {
+  --apple-background: #000000;
+  --apple-foreground: #ffffff;
+  --apple-muted: #98989d;
+  --apple-card: #1c1c1e;
+  --apple-border: rgba(255, 255, 255, 0.08);
+  --apple-secondary-background: #1c1c1e;
+}

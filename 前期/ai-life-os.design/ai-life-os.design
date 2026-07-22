@@ -1,0 +1,244 @@
+{
+  "data": [
+    {
+      "id": "page-today",
+      "title": "Today",
+      "type": "page",
+      "version": 1,
+      "createdAt": 1784024000000,
+      "canvasData": {
+        "x": 0,
+        "y": 0,
+        "group": 0
+      },
+      "devMetadata": {
+        "htmlSrc": "pages/today.html",
+        "interactions": [
+          {
+            "domId": "tab-timeline",
+            "targetPageId": "page-timeline",
+            "hideEdge": true
+          },
+          {
+            "domId": "tab-capture",
+            "targetPageId": "page-capture",
+            "hideEdge": true
+          },
+          {
+            "domId": "tab-ai",
+            "targetPageId": "page-ai",
+            "hideEdge": true
+          },
+          {
+            "domId": "tab-me",
+            "targetPageId": "page-me",
+            "hideEdge": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "page-timeline",
+      "title": "Timeline",
+      "type": "page",
+      "version": 1,
+      "createdAt": 1784024000000,
+      "canvasData": {
+        "x": 420,
+        "y": 0,
+        "group": 0
+      },
+      "devMetadata": {
+        "htmlSrc": "pages/timeline.html",
+        "interactions": [
+          {
+            "domId": "tab-today",
+            "targetPageId": "page-today",
+            "hideEdge": true
+          },
+          {
+            "domId": "tab-capture",
+            "targetPageId": "page-capture",
+            "hideEdge": true
+          },
+          {
+            "domId": "tab-ai",
+            "targetPageId": "page-ai",
+            "hideEdge": true
+          },
+          {
+            "domId": "tab-me",
+            "targetPageId": "page-me",
+            "hideEdge": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "page-capture",
+      "title": "Capture",
+      "type": "page",
+      "version": 1,
+      "createdAt": 1784024000000,
+      "canvasData": {
+        "x": 840,
+        "y": 0,
+        "group": 0
+      },
+      "devMetadata": {
+        "htmlSrc": "pages/capture.html",
+        "interactions": [
+          {
+            "domId": "tab-today",
+            "targetPageId": "page-today",
+            "hideEdge": true
+          },
+          {
+            "domId": "tab-timeline",
+            "targetPageId": "page-timeline",
+            "hideEdge": true
+          },
+          {
+            "domId": "tab-ai",
+            "targetPageId": "page-ai",
+            "hideEdge": true
+          },
+          {
+            "domId": "tab-me",
+            "targetPageId": "page-me",
+            "hideEdge": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "page-ai",
+      "title": "AI",
+      "type": "page",
+      "version": 1,
+      "createdAt": 1784024000000,
+      "canvasData": {
+        "x": 1260,
+        "y": 0,
+        "group": 0
+      },
+      "devMetadata": {
+        "htmlSrc": "pages/ai.html",
+        "interactions": [
+          {
+            "domId": "tab-today",
+            "targetPageId": "page-today",
+            "hideEdge": true
+          },
+          {
+            "domId": "tab-timeline",
+            "targetPageId": "page-timeline",
+            "hideEdge": true
+          },
+          {
+            "domId": "tab-capture",
+            "targetPageId": "page-capture",
+            "hideEdge": true
+          },
+          {
+            "domId": "tab-me",
+            "targetPageId": "page-me",
+            "hideEdge": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "page-me",
+      "title": "Me",
+      "type": "page",
+      "version": 1,
+      "createdAt": 1784024000000,
+      "canvasData": {
+        "x": 1680,
+        "y": 0,
+        "group": 0
+      },
+      "devMetadata": {
+        "htmlSrc": "pages/me.html",
+        "interactions": [
+          {
+            "domId": "tab-today",
+            "targetPageId": "page-today",
+            "hideEdge": true
+          },
+          {
+            "domId": "tab-timeline",
+            "targetPageId": "page-timeline",
+            "hideEdge": true
+          },
+          {
+            "domId": "tab-capture",
+            "targetPageId": "page-capture",
+            "hideEdge": true
+          },
+          {
+            "domId": "tab-ai",
+            "targetPageId": "page-ai",
+            "hideEdge": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "image-001",
+      "title": "AI 大脑主视觉",
+      "type": "image",
+      "version": 1,
+      "createdAt": 1784024100000,
+      "canvasData": {
+        "x": 0,
+        "y": 834
+      },
+      "devMetadata": {
+        "imageSrc": "assets/hero-ai-brain.jpg"
+      }
+    },
+    {
+      "id": "image-002",
+      "title": "时间线抽象视觉",
+      "type": "image",
+      "version": 1,
+      "createdAt": 1784024100000,
+      "canvasData": {
+        "x": 420,
+        "y": 834
+      },
+      "devMetadata": {
+        "imageSrc": "assets/timeline-abstract.jpg"
+      }
+    },
+    {
+      "id": "image-003",
+      "title": "数字自我肖像",
+      "type": "image",
+      "version": 1,
+      "createdAt": 1784024100000,
+      "canvasData": {
+        "x": 840,
+        "y": 834
+      },
+      "devMetadata": {
+        "imageSrc": "assets/digital-self-portrait.jpg"
+      }
+    }
+  ],
+  "config": {
+    "autoLayout": true,
+    "deviceType": "mobile",
+    "projectName": "AI人生操作系统",
+    "designLibrary": {
+      "name": "苹果",
+      "id": "dl_builtin_apple",
+      "version": null,
+      "scope": "built-in-global",
+      "path": "c:\\Users\\郑文东\\.trae-cn\\design_libraries\\dl_builtin_apple",
+      "versionSource": "selected-context"
+    }
+  }
+}
