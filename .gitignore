@@ -54,9 +54,6 @@ app.*.map.json
 # 开发工具目录
 dev/
 
-# 临时脚本（包含密钥，不要提交）
-scripts/
-
 # 构建日志
 build_error.txt
 build_full.txt
