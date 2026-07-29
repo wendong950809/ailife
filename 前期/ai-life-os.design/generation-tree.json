@@ -1,0 +1,9 @@
+{
+  "nodes": [
+    { "id": "page-today", "role": "leaf", "status": "planned", "htmlSrc": "pages/today.html" },
+    { "id": "page-timeline", "role": "leaf", "status": "planned", "htmlSrc": "pages/timeline.html" },
+    { "id": "page-capture", "role": "leaf", "status": "planned", "htmlSrc": "pages/capture.html" },
+    { "id": "page-ai", "role": "leaf", "status": "planned", "htmlSrc": "pages/ai.html" },
+    { "id": "page-me", "role": "leaf", "status": "planned", "htmlSrc": "pages/me.html" }
+  ]
+}
