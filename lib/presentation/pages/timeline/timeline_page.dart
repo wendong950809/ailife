@@ -15,14 +15,12 @@ class TimelinePage extends StatefulWidget {
 class _TimelinePageState extends State<TimelinePage> {
   final SupabaseClient _supabase = Supabase.instance.client;
 
-  TimePrecision _zoomLevel = TimePrecision.day;
-  EventSource? _sourceFilter;
-  String _searchQuery = '';
   List<TimelineEvent> _events = [];
   bool _isLoading = true;
   bool _hasMore = true;
-  int _pageSize = 20;
+  final int _pageSize = 30;
   DateTime? _lastDate;
+  String _searchQuery = '';
 
   final ScrollController _scrollController = ScrollController();
 
@@ -79,12 +77,8 @@ class _TimelinePageState extends State<TimelinePage> {
           .from('timeline')
           .select()
           .eq('user_id', userId)
-          .order('occurred_at', ascending: false)
+          .order('occurred_at', ascending: false, nullsFirst: false)
           .limit(_pageSize);
-
-      if (_sourceFilter != null) {
-        query = query.eq('event_source', _sourceFilter!.name);
-      }
 
       if (_searchQuery.isNotEmpty) {
         query = query.or('title.ilike.%$_searchQuery%,summary.ilike.%$_searchQuery%');
@@ -124,37 +118,7 @@ class _TimelinePageState extends State<TimelinePage> {
     }
   }
 
-  void _zoomIn() {
-    final levels = TimePrecision.values;
-    final currentIndex = levels.indexOf(_zoomLevel);
-    if (currentIndex > 0) {
-      setState(() => _zoomLevel = levels[currentIndex - 1]);
-    }
-  }
-
-  void _zoomOut() {
-    final levels = TimePrecision.values;
-    final currentIndex = levels.indexOf(_zoomLevel);
-    if (currentIndex < levels.length - 2) {
-      setState(() => _zoomLevel = levels[currentIndex + 1]);
-    }
-  }
-
-  String get _zoomLabel {
-    switch (_zoomLevel) {
-      case TimePrecision.day:
-        return '按天';
-      case TimePrecision.week:
-        return '按周';
-      case TimePrecision.month:
-        return '按月';
-      case TimePrecision.year:
-        return '按年';
-      case TimePrecision.unknown:
-        return '全部';
-    }
-  }
-
+  /// 按日期分组事件
   Map<String, List<TimelineEvent>> get _groupedEvents {
     final groups = <String, List<TimelineEvent>>{};
     for (final event in _events) {
@@ -167,20 +131,17 @@ class _TimelinePageState extends State<TimelinePage> {
 
   String _groupKey(TimelineEvent event) {
     final date = event.occurredAt ?? DateTime.now();
-    switch (_zoomLevel) {
-      case TimePrecision.day:
-        return DateFormat('yyyy年M月d日 EEEE', 'zh_CN').format(date);
-      case TimePrecision.week:
-        final weekStart = date.subtract(Duration(days: date.weekday - 1));
-        final weekEnd = weekStart.add(const Duration(days: 6));
-        return '${DateFormat('M月d日', 'zh_CN').format(weekStart)} - ${DateFormat('M月d日', 'zh_CN').format(weekEnd)}';
-      case TimePrecision.month:
-        return DateFormat('yyyy年M月', 'zh_CN').format(date);
-      case TimePrecision.year:
-        return DateFormat('yyyy年', 'zh_CN').format(date);
-      case TimePrecision.unknown:
-        return '全部时间';
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final yesterday = today.subtract(const Duration(days: 1));
+    final eventDate = DateTime(date.year, date.month, date.day);
+
+    if (eventDate == today) return '今天';
+    if (eventDate == yesterday) return '昨天';
+    if (date.year == now.year) {
+      return DateFormat('M月d日 EEEE', 'zh_CN').format(date);
     }
+    return DateFormat('yyyy年M月d日', 'zh_CN').format(date);
   }
 
   @override
@@ -191,13 +152,10 @@ class _TimelinePageState extends State<TimelinePage> {
         child: Column(
           children: [
             _buildHeader(),
-            _buildZoomBar(),
             _buildSearchBar(),
             Expanded(
               child: _isLoading && _events.isEmpty
-                  ? const Center(
-                      child: CircularProgressIndicator(color: AppColors.primary),
-                    )
+                  ? _buildSkeletonLoading()
                   : _events.isEmpty
                       ? _buildEmptyState()
                       : RefreshIndicator(
@@ -205,24 +163,16 @@ class _TimelinePageState extends State<TimelinePage> {
                           color: AppColors.primary,
                           child: ListView.builder(
                             controller: _scrollController,
-                            padding: const EdgeInsets.fromLTRB(20, 0, 20, 96),
+                            padding: const EdgeInsets.fromLTRB(16, 0, 16, 96),
                             itemCount: _groupedEvents.length + (_hasMore ? 1 : 0),
                             itemBuilder: (context, index) {
                               if (index == _groupedEvents.length) {
-                                return const Padding(
-                                  padding: EdgeInsets.symmetric(vertical: 16),
-                                  child: Center(
-                                    child: CircularProgressIndicator(
-                                      color: AppColors.primary,
-                                      strokeWidth: 2,
-                                    ),
-                                  ),
-                                );
+                                return _buildLoadingMore();
                               }
                               final keys = _groupedEvents.keys.toList();
                               final key = keys[index];
                               final events = _groupedEvents[key]!;
-                              return _buildTimelineGroup(key, events, index == 0);
+                              return _buildDateGroup(key, events, index == 0);
                             },
                           ),
                         ),
@@ -237,160 +187,58 @@ class _TimelinePageState extends State<TimelinePage> {
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
       child: Row(
-        children: const [
-          Text(
+        children: [
+          const Text(
             '我的时间线',
             style: TextStyle(
-              fontSize: 20,
+              fontSize: 22,
               fontWeight: FontWeight.w700,
               color: AppColors.textPrimary,
             ),
           ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildZoomBar() {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
-      child: Row(
-        children: [
-          Container(
-            decoration: BoxDecoration(
-              color: AppColors.surface,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppColors.borderLight),
+          const SizedBox(width: 8),
+          if (_events.isNotEmpty)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+              decoration: BoxDecoration(
+                color: AppColors.primary.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Text(
+                '${_events.length}',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.primary,
+                ),
+              ),
             ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                GestureDetector(
-                  onTap: _zoomIn,
-                  behavior: HitTestBehavior.opaque,
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    child: Icon(
-                      Icons.zoom_in,
-                      size: 18,
-                      color: _zoomLevel == TimePrecision.day
-                          ? AppColors.textTertiary
-                          : AppColors.textSecondary,
-                    ),
-                  ),
-                ),
-                Container(
-                  width: 1,
-                  height: 16,
-                  color: AppColors.borderLight,
-                ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  child: Text(
-                    _zoomLabel,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                      color: AppColors.textPrimary,
-                    ),
-                  ),
-                ),
-                Container(
-                  width: 1,
-                  height: 16,
-                  color: AppColors.borderLight,
-                ),
-                GestureDetector(
-                  onTap: _zoomOut,
-                  behavior: HitTestBehavior.opaque,
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    child: Icon(
-                      Icons.zoom_out,
-                      size: 18,
-                      color: _zoomLevel == TimePrecision.year
-                          ? AppColors.textTertiary
-                          : AppColors.textSecondary,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
           const Spacer(),
-          _buildSourceFilter(),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSourceFilter() {
-    return PopupMenuButton<EventSource?>(
-      onSelected: (source) {
-        setState(() {
-          _sourceFilter = source;
-          _loadEvents();
-        });
-      },
-      itemBuilder: (context) => [
-        const PopupMenuItem<EventSource?>(
-          value: null,
-          child: Text('全部来源'),
-        ),
-        ...EventSource.values.map((s) => PopupMenuItem<EventSource?>(
-              value: s,
-              child: Text(_sourceLabel(s)),
-            )),
-      ],
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: AppColors.borderLight),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              Icons.filter_list,
-              size: 16,
-              color: AppColors.textSecondary,
-            ),
-            const SizedBox(width: 6),
-            Text(
-              _sourceFilter == null ? '筛选' : _sourceLabel(_sourceFilter!),
-              style: const TextStyle(
-                fontSize: 12,
+          GestureDetector(
+            onTap: _loadEvents,
+            child: Container(
+              width: 32,
+              height: 32,
+              decoration: BoxDecoration(
+                color: AppColors.surface,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: AppColors.borderLight),
+              ),
+              child: const Icon(
+                Icons.refresh,
+                size: 16,
                 color: AppColors.textSecondary,
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
-  }
-
-  String _sourceLabel(EventSource source) {
-    switch (source) {
-      case EventSource.chat:
-        return '聊天';
-      case EventSource.photo:
-        return '照片';
-      case EventSource.voice:
-        return '语音';
-      case EventSource.calendar:
-        return '日历';
-      case EventSource.document:
-        return '文档';
-      case EventSource.health:
-        return '健康';
-    }
   }
 
   Widget _buildSearchBar() {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+      padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
       child: Container(
         decoration: BoxDecoration(
           color: AppColors.surface,
@@ -400,11 +248,7 @@ class _TimelinePageState extends State<TimelinePage> {
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         child: Row(
           children: [
-            Icon(
-              Icons.search,
-              size: 18,
-              color: AppColors.textTertiary,
-            ),
+            const Icon(Icons.search, size: 18, color: AppColors.textTertiary),
             const SizedBox(width: 8),
             Expanded(
               child: TextField(
@@ -413,19 +257,13 @@ class _TimelinePageState extends State<TimelinePage> {
                 },
                 onSubmitted: (_) => _loadEvents(),
                 decoration: const InputDecoration(
-                  hintText: '搜索时间线事件...',
+                  hintText: '搜索时间线...',
                   border: InputBorder.none,
                   isDense: true,
                   contentPadding: EdgeInsets.zero,
-                  hintStyle: TextStyle(
-                    fontSize: 14,
-                    color: AppColors.textTertiary,
-                  ),
+                  hintStyle: TextStyle(fontSize: 14, color: AppColors.textTertiary),
                 ),
-                style: const TextStyle(
-                  fontSize: 14,
-                  color: AppColors.textPrimary,
-                ),
+                style: const TextStyle(fontSize: 14, color: AppColors.textPrimary),
               ),
             ),
             if (_searchQuery.isNotEmpty)
@@ -436,11 +274,7 @@ class _TimelinePageState extends State<TimelinePage> {
                     _loadEvents();
                   });
                 },
-                child: Icon(
-                  Icons.clear,
-                  size: 16,
-                  color: AppColors.textTertiary,
-                ),
+                child: const Icon(Icons.clear, size: 16, color: AppColors.textTertiary),
               ),
           ],
         ),
@@ -448,342 +282,184 @@ class _TimelinePageState extends State<TimelinePage> {
     );
   }
 
-  Widget _buildTimelineGroup(String title, List<TimelineEvent> events, bool isFirst) {
+  /// 日期分组
+  Widget _buildDateGroup(String title, List<TimelineEvent> events, bool isFirst) {
     return Padding(
-      padding: EdgeInsets.only(top: isFirst ? 0 : 24),
+      padding: EdgeInsets.only(top: isFirst ? 0 : 20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildGroupHeader(title, events.length),
-          const SizedBox(height: 12),
+          // 日期标题
+          Padding(
+            padding: const EdgeInsets.only(left: 4, bottom: 10),
+            child: Row(
+              children: [
+                Container(
+                  width: 4,
+                  height: 14,
+                  decoration: BoxDecoration(
+                    color: AppColors.primary,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  '${events.length}条',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: AppColors.textTertiary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          // 事件列表
           ...events.asMap().entries.map((entry) {
-            final index = entry.key;
-            final event = entry.value;
-            final isLast = index == events.length - 1;
-            return _buildTimelineItem(event, isLast);
+            return _buildEventCard(entry.value);
           }),
         ],
       ),
     );
   }
 
-  Widget _buildGroupHeader(String title, int count) {
-    return Row(
-      children: [
-        Container(
-          width: 6,
-          height: 20,
-          decoration: BoxDecoration(
-            color: AppColors.primary,
-            borderRadius: BorderRadius.circular(3),
-            boxShadow: [
-              BoxShadow(
-                color: AppColors.primary.withOpacity(0.3),
-                blurRadius: 4,
-                offset: const Offset(0, 2),
+  /// 事件卡片
+  Widget _buildEventCard(TimelineEvent event) {
+    return GestureDetector(
+      onTap: () => _showEventDetail(event),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 10),
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: AppColors.borderLight),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // 图标
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: AppColors.primary.withOpacity(0.08),
+                borderRadius: BorderRadius.circular(10),
               ),
-            ],
-          ),
-        ),
-        const SizedBox(width: 10),
-        Text(
-          title,
-          style: const TextStyle(
-            fontSize: 15,
-            fontWeight: FontWeight.w700,
-            color: AppColors.textPrimary,
-          ),
-        ),
-        const SizedBox(width: 8),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-          decoration: BoxDecoration(
-            color: AppColors.primary.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: Text(
-            '$count',
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: AppColors.primary,
+              child: Center(
+                child: Text(
+                  event.icon ?? '📝',
+                  style: const TextStyle(fontSize: 18),
+                ),
+              ),
             ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildTimelineItem(TimelineEvent event, bool isLast) {
-    return Padding(
-      padding: EdgeInsets.only(bottom: isLast ? 0 : 20),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 80,
-            child: Column(
-              children: [
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
+            const SizedBox(width: 12),
+            // 内容
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // 标题
+                  Text(
+                    event.title,
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.textPrimary,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 4),
+                  // 摘要
+                  Text(
+                    event.summary,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      height: 1.4,
+                      color: AppColors.textSecondary,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 8),
+                  // 底部信息
+                  Row(
                     children: [
-                      Text(
-                        _formatDate(event.occurredAt),
-                        style: const TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.textPrimary,
-                        ),
-                      ),
-                      if (event.occurredAt != null && event.timePrecision != TimePrecision.month && event.timePrecision != TimePrecision.year)
+                      if (event.occurredAt != null)
                         Text(
-                          _formatHour(event.occurredAt!),
+                          _formatTime(event.occurredAt!, event.timePrecision),
                           style: TextStyle(
                             fontSize: 11,
-                            color: AppColors.primary,
-                            fontWeight: FontWeight.w500,
+                            color: AppColors.textTertiary,
                           ),
                         ),
+                      const SizedBox(width: 8),
+                      _buildSourceChip(event.eventSource),
+                      const Spacer(),
+                      _buildPrecisionBadge(event.timePrecision),
                     ],
                   ),
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    Container(
-                      width: 12,
-                      height: 12,
-                      decoration: BoxDecoration(
-                        color: AppColors.primary,
-                        shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(
-                            color: AppColors.primary.withOpacity(0.4),
-                            blurRadius: 8,
-                            offset: const Offset(0, 0),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                  ],
-                ),
-                if (!isLast)
-                  const SizedBox(height: 4),
-                if (!isLast)
-                  Expanded(
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      children: [
-                        Container(
-                          width: 2,
-                          margin: const EdgeInsets.only(right: 13),
-                          decoration: const BoxDecoration(
-                            color: AppColors.border,
-                            borderRadius: BorderRadius.vertical(bottom: Radius.circular(2)),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 4),
-          Container(
-            width: 3,
-            height: double.infinity,
-            decoration: const BoxDecoration(
-              color: AppColors.borderLight,
-              borderRadius: BorderRadius.only(
-                topRight: Radius.circular(2),
-                bottomRight: Radius.circular(2),
+                ],
               ),
             ),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: GestureDetector(
-              onTap: () => _showEventDetail(event),
-              child: Container(
-                width: double.infinity,
-                decoration: BoxDecoration(
-                  color: AppColors.surface,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: AppColors.borderLight),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.03),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Container(
-                          width: 32,
-                          height: 32,
-                          decoration: BoxDecoration(
-                            color: AppColors.primary.withOpacity(0.08),
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: Center(
-                            child: Text(
-                              event.icon ?? '📝',
-                              style: const TextStyle(fontSize: 16),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Text(
-                            event.title,
-                            style: const TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.textPrimary,
-                            ),
-                          ),
-                        ),
-                        _buildPrecisionBadge(event.timePrecision),
-                      ],
-                    ),
-                    const SizedBox(height: 10),
-                    Text(
-                      event.summary,
-                      style: const TextStyle(
-                        fontSize: 13,
-                        height: 1.5,
-                        color: AppColors.textSecondary,
-                      ),
-                      maxLines: 3,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        _buildSourceChip(event.eventSource),
-                        const Spacer(),
-                        if (event.occurredAt != null)
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                            decoration: BoxDecoration(
-                              color: AppColors.primary.withOpacity(0.08),
-                              borderRadius: BorderRadius.circular(6),
-                            ),
-                            child: Text(
-                              _precisionLabel(event.timePrecision),
-                              style: TextStyle(
-                                fontSize: 11,
-                                color: AppColors.primary,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildPrecisionBadge(TimePrecision precision) {
-    Color color;
-    String label;
-    switch (precision) {
-      case TimePrecision.day:
-        color = AppColors.stateSuccess;
-        label = '精确';
-        break;
-      case TimePrecision.week:
-        color = AppColors.primary;
-        label = '周';
-        break;
-      case TimePrecision.month:
-        color = Colors.orange;
-        label = '月';
-        break;
-      case TimePrecision.year:
-        color = Colors.purple;
-        label = '年';
-        break;
-      case TimePrecision.unknown:
-        color = AppColors.textTertiary;
-        label = '模糊';
-        break;
-    }
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(6),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          fontSize: 10,
-          fontWeight: FontWeight.w500,
-          color: color,
+          ],
         ),
       ),
     );
   }
 
   Widget _buildSourceChip(EventSource source) {
-    IconData icon;
-    String label;
-    switch (source) {
-      case EventSource.chat:
-        icon = Icons.chat_bubble_outline;
-        label = '聊天';
-        break;
-      case EventSource.photo:
-        icon = Icons.photo_outlined;
-        label = '照片';
-        break;
-      case EventSource.voice:
-        icon = Icons.mic_none;
-        label = '语音';
-        break;
-      case EventSource.calendar:
-        icon = Icons.event_outlined;
-        label = '日历';
-        break;
-      case EventSource.document:
-        icon = Icons.description_outlined;
-        label = '文档';
-        break;
-      case EventSource.health:
-        icon = Icons.favorite_border;
-        label = '健康';
-        break;
-    }
+    final sourceMap = {
+      EventSource.chat: {'icon': Icons.chat_bubble_outline, 'label': '聊天'},
+      EventSource.photo: {'icon': Icons.photo_outlined, 'label': '照片'},
+      EventSource.voice: {'icon': Icons.mic_none, 'label': '语音'},
+      EventSource.calendar: {'icon': Icons.event_outlined, 'label': '日历'},
+      EventSource.document: {'icon': Icons.description_outlined, 'label': '文档'},
+      EventSource.health: {'icon': Icons.favorite_border, 'label': '健康'},
+    };
+    final info = sourceMap[source]!;
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, size: 12, color: AppColors.textTertiary),
-        const SizedBox(width: 4),
+        Icon(info['icon'] as IconData, size: 11, color: AppColors.textTertiary),
+        const SizedBox(width: 3),
         Text(
-          label,
-          style: const TextStyle(
-            fontSize: 11,
-            color: AppColors.textTertiary,
-          ),
+          info['label'] as String,
+          style: const TextStyle(fontSize: 11, color: AppColors.textTertiary),
         ),
       ],
+    );
+  }
+
+  Widget _buildPrecisionBadge(TimePrecision precision) {
+    final badgeMap = {
+      TimePrecision.day: {'color': AppColors.stateSuccess, 'label': '精确'},
+      TimePrecision.week: {'color': AppColors.primary, 'label': '周'},
+      TimePrecision.month: {'color': Colors.orange, 'label': '月'},
+      TimePrecision.year: {'color': Colors.purple, 'label': '年'},
+      TimePrecision.unknown: {'color': AppColors.textTertiary, 'label': '模糊'},
+    };
+    final info = badgeMap[precision]!;
+    final color = info['color'] as Color;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(5),
+      ),
+      child: Text(
+        info['label'] as String,
+        style: TextStyle(fontSize: 10, fontWeight: FontWeight.w500, color: color),
+      ),
     );
   }
 
@@ -802,33 +478,12 @@ class _TimelinePageState extends State<TimelinePage> {
     }
   }
 
-  String _formatDate(DateTime? date) {
-    if (date == null) return '未知时间';
-    final now = DateTime.now();
-    final diff = now.difference(date).inDays;
-    
-    if (diff == 0) return '今天';
-    if (diff == 1) return '昨天';
-    if (diff == 2) return '前天';
-    if (diff < 7) return '${7 - diff}天前';
-    
-    if (date.year == now.year) {
-      return DateFormat('M月d日', 'zh_CN').format(date);
-    }
-    return DateFormat('yyyy年M月d日', 'zh_CN').format(date);
-  }
-
-  String _formatHour(DateTime date) {
-    return DateFormat('HH:mm', 'zh_CN').format(date);
-  }
-
+  /// 事件详情弹窗
   void _showEventDetail(TimelineEvent event) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      isDismissible: true,
-      enableDrag: true,
       builder: (context) => DraggableScrollableSheet(
         initialChildSize: 0.6,
         minChildSize: 0.35,
@@ -837,13 +492,6 @@ class _TimelinePageState extends State<TimelinePage> {
           decoration: const BoxDecoration(
             color: AppColors.surface,
             borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black12,
-                blurRadius: 20,
-                spreadRadius: 5,
-              ),
-            ],
           ),
           child: Stack(
             children: [
@@ -853,24 +501,23 @@ class _TimelinePageState extends State<TimelinePage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const SizedBox(height: 8),
                     Row(
                       children: [
                         Container(
-                          width: 56,
-                          height: 56,
+                          width: 52,
+                          height: 52,
                           decoration: BoxDecoration(
                             color: AppColors.primary.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(20),
+                            borderRadius: BorderRadius.circular(16),
                           ),
                           child: Center(
                             child: Text(
                               event.icon ?? '📝',
-                              style: const TextStyle(fontSize: 28),
+                              style: const TextStyle(fontSize: 26),
                             ),
                           ),
                         ),
-                        const SizedBox(width: 16),
+                        const SizedBox(width: 14),
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -878,18 +525,18 @@ class _TimelinePageState extends State<TimelinePage> {
                               Text(
                                 event.title,
                                 style: const TextStyle(
-                                  fontSize: 20,
+                                  fontSize: 18,
                                   fontWeight: FontWeight.w700,
                                   color: AppColors.textPrimary,
                                 ),
                               ),
-                              const SizedBox(height: 6),
+                              const SizedBox(height: 4),
                               if (event.occurredAt != null)
                                 Text(
                                   DateFormat('yyyy年M月d日 HH:mm', 'zh_CN')
                                       .format(event.occurredAt!),
                                   style: const TextStyle(
-                                    fontSize: 14,
+                                    fontSize: 13,
                                     color: AppColors.textTertiary,
                                   ),
                                 ),
@@ -898,12 +545,13 @@ class _TimelinePageState extends State<TimelinePage> {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 20),
                     Container(
+                      width: double.infinity,
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
                         color: AppColors.bg,
-                        borderRadius: BorderRadius.circular(16),
+                        borderRadius: BorderRadius.circular(14),
                       ),
                       child: Text(
                         event.summary,
@@ -914,7 +562,7 @@ class _TimelinePageState extends State<TimelinePage> {
                         ),
                       ),
                     ),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 20),
                     Row(
                       children: [
                         _buildDetailItem('来源', _sourceLabel(event.eventSource)),
@@ -929,11 +577,7 @@ class _TimelinePageState extends State<TimelinePage> {
                 top: 12,
                 right: 12,
                 child: IconButton(
-                  icon: const Icon(
-                    Icons.close,
-                    color: AppColors.textTertiary,
-                    size: 24,
-                  ),
+                  icon: const Icon(Icons.close, color: AppColors.textTertiary, size: 22),
                   onPressed: () => Navigator.pop(context),
                   padding: const EdgeInsets.all(8),
                   splashRadius: 20,
@@ -945,11 +589,11 @@ class _TimelinePageState extends State<TimelinePage> {
                 right: 0,
                 child: Center(
                   child: Container(
-                    width: 48,
-                    height: 5,
+                    width: 40,
+                    height: 4,
                     decoration: BoxDecoration(
                       color: AppColors.borderLight,
-                      borderRadius: BorderRadius.circular(3),
+                      borderRadius: BorderRadius.circular(2),
                     ),
                   ),
                 ),
@@ -961,16 +605,34 @@ class _TimelinePageState extends State<TimelinePage> {
     );
   }
 
+  String _sourceLabel(EventSource source) {
+    switch (source) {
+      case EventSource.chat: return '聊天';
+      case EventSource.photo: return '照片';
+      case EventSource.voice: return '语音';
+      case EventSource.calendar: return '日历';
+      case EventSource.document: return '文档';
+      case EventSource.health: return '健康';
+    }
+  }
+
+  String _precisionLabel(TimePrecision precision) {
+    switch (precision) {
+      case TimePrecision.day: return '精确到天';
+      case TimePrecision.week: return '精确到周';
+      case TimePrecision.month: return '精确到月';
+      case TimePrecision.year: return '精确到年';
+      case TimePrecision.unknown: return '时间模糊';
+    }
+  }
+
   Widget _buildDetailItem(String label, String value) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           label,
-          style: const TextStyle(
-            fontSize: 12,
-            color: AppColors.textTertiary,
-          ),
+          style: const TextStyle(fontSize: 12, color: AppColors.textTertiary),
         ),
         const SizedBox(height: 4),
         Text(
@@ -985,19 +647,70 @@ class _TimelinePageState extends State<TimelinePage> {
     );
   }
 
-  String _precisionLabel(TimePrecision precision) {
-    switch (precision) {
-      case TimePrecision.day:
-        return '精确到天';
-      case TimePrecision.week:
-        return '精确到周';
-      case TimePrecision.month:
-        return '精确到月';
-      case TimePrecision.year:
-        return '精确到年';
-      case TimePrecision.unknown:
-        return '时间模糊';
-    }
+  /// 骨架屏加载
+  Widget _buildSkeletonLoading() {
+    return ListView.builder(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 96),
+      itemCount: 5,
+      itemBuilder: (context, index) => Container(
+        margin: const EdgeInsets.only(bottom: 10),
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: AppColors.borderLight),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: AppColors.bgTertiary,
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    height: 14,
+                    width: double.infinity,
+                    decoration: BoxDecoration(
+                      color: AppColors.bgTertiary,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Container(
+                    height: 12,
+                    width: 200,
+                    decoration: BoxDecoration(
+                      color: AppColors.bgTertiary,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLoadingMore() {
+    return const Padding(
+      padding: EdgeInsets.symmetric(vertical: 16),
+      child: Center(
+        child: CircularProgressIndicator(
+          color: AppColors.primary,
+          strokeWidth: 2,
+        ),
+      ),
+    );
   }
 
   Widget _buildEmptyState() {
@@ -1005,25 +718,28 @@ class _TimelinePageState extends State<TimelinePage> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(
+          Icon(
             Icons.timeline,
-            size: 48,
-            color: Color(0xFFCCCCCC),
+            size: 56,
+            color: AppColors.textTertiary.withOpacity(0.4),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 16),
           const Text(
             '还没有时间线记录',
             style: TextStyle(
-              fontSize: 14,
+              fontSize: 15,
+              fontWeight: FontWeight.w500,
               color: AppColors.textTertiary,
             ),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 6),
           Text(
-            '聊聊天，你的生活就会被记录在这里',
+            '去聊天页面发条消息，\n你的生活就会自动记录在这里',
+            textAlign: TextAlign.center,
             style: TextStyle(
-              fontSize: 12,
-              color: AppColors.textTertiary.withOpacity(0.7),
+              fontSize: 13,
+              height: 1.5,
+              color: AppColors.textTertiary.withOpacity(0.6),
             ),
           ),
         ],

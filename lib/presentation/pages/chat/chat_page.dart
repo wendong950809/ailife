@@ -480,14 +480,18 @@ class _ChatPageState extends State<ChatPage> {
       return;
     }
 
-    debugPrint('📅 [Timeline] 开始异步提取事实，messageId=$messageId');
+    final createdAt = messageCreatedAt ?? DateTime.now();
 
+    // 1. 直接生成时间线事件（不依赖 fact 提取，一次 AI 调用）
+    _generateTimelineAsync(messageId, user.id, userContent, createdAt);
+
+    // 2. 保留 fact 提取给记忆模块用（异步，不阻塞 timeline）
+    debugPrint('📅 [Timeline] 开始异步提取事实，messageId=$messageId');
     final aiService = context.read<AiProvider>().aiService;
     final agentService = AgentService(
       aiService: aiService,
       loggingService: _loggingService,
     );
-    final createdAt = messageCreatedAt ?? DateTime.now();
 
     Future.microtask(() async {
       try {
@@ -496,31 +500,29 @@ class _ChatPageState extends State<ChatPage> {
           userId: user.id,
           userContent: userContent,
         );
+        debugPrint('📅 [Timeline] 事实提取结果: success=${result.success}, factsCount=${result.data?.facts.length ?? 0}');
+      } catch (e, stackTrace) {
+        debugPrint('📅 [Timeline] 事实提取异常: $e');
+        debugPrint('📅 [Timeline] 堆栈: $stackTrace');
+      }
+    });
+  }
 
-        debugPrint('📅 [Timeline] 事实提取结果: success=${result.success}, data=${result.data != null}, factsCount=${result.data?.facts.length ?? 0}');
+  /// 独立的时间线生成方法（一次 AI 调用，不依赖 fact 提取）
+  void _generateTimelineAsync(String messageId, String userId, String userContent, DateTime createdAt) {
+    final aiService = context.read<AiProvider>().aiService;
+    final agentService = AgentService(
+      aiService: aiService,
+      loggingService: _loggingService,
+    );
 
-        if (!result.success) {
-          debugPrint('📅 [Timeline] 事实提取失败: ${result.error}');
-          return;
-        }
-
-        if (result.data == null) {
-          debugPrint('📅 [Timeline] 事实提取返回空数据');
-          return;
-        }
-
-        if (result.data!.facts.isEmpty) {
-          debugPrint('📅 [Timeline] 未提取到任何事实，跳过时间线生成');
-          return;
-        }
-
+    Future.microtask(() async {
+      try {
         debugPrint('📅 [Timeline] 开始生成时间线事件...');
         final timelineResult = await agentService.generateTimelineEvent(
           messageId: messageId,
-          userId: user.id,
+          userId: userId,
           originalMessage: userContent,
-          factGroup: result.data!.group,
-          facts: result.data!.facts,
           messageCreatedAt: createdAt,
         );
 

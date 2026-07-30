@@ -161,28 +161,21 @@ class AgentService {
   }
 
   /// ============================================
-  /// 执行 Timeline Agent（第二层）
+  /// 执行 Timeline Agent（重构版）
   /// ============================================
-  /// 输入：Fact Group + Facts + 原始消息
-  /// 输出：Timeline Event（存入 timeline 表）
+  /// 一次 AI 调用直接从用户消息生成 Timeline 事件
+  /// 不再依赖 Fact 提取
   /// ============================================
   Future<AgentResult<TimelineEvent>> generateTimelineEvent({
     required String messageId,
     required String userId,
     required String originalMessage,
-    required FactGroup factGroup,
-    required List<ExtractedFact> facts,
     required DateTime messageCreatedAt,
     EventSource source = EventSource.chat,
   }) async {
     final startTime = DateTime.now();
     try {
       debugPrint('📅 [Agent] 开始生成 Timeline 事件, messageId=$messageId');
-
-      if (facts.isEmpty) {
-        debugPrint('📅 [Agent] 无事实，跳过 Timeline 生成');
-        return AgentResult.failure('无事实可生成时间线');
-      }
 
       final agent = TimelineAgent.definition;
       final messages = [
@@ -191,8 +184,6 @@ class AgentService {
           'role': 'user',
           'content': TimelineAgent.buildUserPrompt(
             originalMessage: originalMessage,
-            factGroup: factGroup,
-            facts: facts,
             messageCreatedAt: messageCreatedAt,
           ),
         },
@@ -217,7 +208,6 @@ class AgentService {
         response,
         userId: userId,
         messageId: messageId,
-        factGroupId: factGroup.id,
         source: source,
       );
 
@@ -273,7 +263,6 @@ class AgentService {
     String response, {
     required String userId,
     required String messageId,
-    String? factGroupId,
     EventSource source = EventSource.chat,
   }) {
     try {
@@ -305,7 +294,6 @@ class AgentService {
       return TimelineEvent(
         userId: userId,
         messageId: messageId,
-        factGroupId: factGroupId,
         title: title,
         summary: summary,
         occurredAt: occurredAt,
