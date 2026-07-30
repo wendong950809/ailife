@@ -621,37 +621,41 @@ class _TimelinePageState extends State<TimelinePage> {
   Widget _buildEventCardWithTimeline(TimelineEvent event, bool isLastEvent) {
     return IntrinsicHeight(
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           // 左侧时间轴
           SizedBox(
             width: 44,
-            child: Column(
+            child: Stack(
+              alignment: Alignment.topCenter,
               children: [
-                // 节点圆点
-                Container(
-                  width: 10,
-                  height: 10,
-                  margin: const EdgeInsets.only(top: 18),
-                  decoration: BoxDecoration(
-                    color: AppColors.primary,
-                    shape: BoxShape.circle,
-                    border: Border.all(color: AppColors.surface, width: 2),
-                    boxShadow: [
-                      BoxShadow(
-                        color: AppColors.primary.withOpacity(0.25),
-                        blurRadius: 4,
-                        spreadRadius: 1,
-                      ),
-                    ],
+                // 节点圆点（固定在顶部）
+                Positioned(
+                  top: 18,
+                  child: Container(
+                    width: 10,
+                    height: 10,
+                    decoration: BoxDecoration(
+                      color: AppColors.primary,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: AppColors.surface, width: 2),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppColors.primary.withOpacity(0.25),
+                          blurRadius: 4,
+                          spreadRadius: 1,
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-                // 向下延伸的竖线
+                // 向下延伸的竖线（从圆点底部画到底部）
                 if (!isLastEvent)
-                  Expanded(
+                  Positioned(
+                    top: 32,
+                    bottom: 0,
                     child: Container(
                       width: 2,
-                      margin: const EdgeInsets.only(top: 4),
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
                           begin: Alignment.topCenter,
@@ -879,26 +883,30 @@ class _TimelinePageState extends State<TimelinePage> {
   Widget _buildRecordingFooter() {
     return IntrinsicHeight(
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           SizedBox(
             width: 44,
-            child: Column(
+            child: Stack(
+              alignment: Alignment.topCenter,
               children: [
-                Container(
-                  width: 10,
-                  height: 10,
-                  margin: const EdgeInsets.only(top: 18),
-                  decoration: BoxDecoration(
-                    color: AppColors.primary.withOpacity(0.3),
-                    shape: BoxShape.circle,
-                    border: Border.all(color: AppColors.surface, width: 2),
+                Positioned(
+                  top: 18,
+                  child: Container(
+                    width: 10,
+                    height: 10,
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withOpacity(0.3),
+                      shape: BoxShape.circle,
+                      border: Border.all(color: AppColors.surface, width: 2),
+                    ),
                   ),
                 ),
-                Expanded(
+                Positioned(
+                  top: 32,
+                  bottom: 0,
                   child: Container(
                     width: 2,
-                    margin: const EdgeInsets.only(top: 4),
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
                         begin: Alignment.topCenter,
@@ -1222,28 +1230,33 @@ class _TimelinePageState extends State<TimelinePage> {
   /// 骨架屏加载
   Widget _buildSkeletonLoading() {
     return ListView.builder(
-      padding: const EdgeInsets.fromLTRB(44, 0, 16, 96),
+      padding: const EdgeInsets.fromLTRB(0, 0, 16, 96),
       itemCount: 5,
       itemBuilder: (context, index) => IntrinsicHeight(
         child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             SizedBox(
               width: 44,
-              child: Column(
+              child: Stack(
+                alignment: Alignment.topCenter,
                 children: [
-                  Container(
-                    width: 10, height: 10,
-                    margin: const EdgeInsets.only(top: 18),
-                    decoration: BoxDecoration(
-                      color: AppColors.bgTertiary,
-                      shape: BoxShape.circle,
+                  Positioned(
+                    top: 18,
+                    child: Container(
+                      width: 10, height: 10,
+                      decoration: BoxDecoration(
+                        color: AppColors.bgTertiary,
+                        shape: BoxShape.circle,
+                      ),
                     ),
                   ),
                   if (index < 4)
-                    Expanded(
+                    Positioned(
+                      top: 32,
+                      bottom: 0,
                       child: Container(
-                        width: 2, margin: const EdgeInsets.only(top: 4),
+                        width: 2,
                         color: AppColors.bgTertiary,
                       ),
                     ),
