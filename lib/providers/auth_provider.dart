@@ -184,6 +184,7 @@ class AuthProvider extends ChangeNotifier {
     String? username,
     String? bio,
     String? avatarUrl,
+    String? aiAvatarUrl,
     DateTime? birthday,
   }) async {
     if (_user == null) return;
@@ -192,6 +193,7 @@ class AuthProvider extends ChangeNotifier {
     if (username != null) data['username'] = username;
     if (bio != null) data['bio'] = bio;
     if (avatarUrl != null) data['avatar_url'] = avatarUrl;
+    if (aiAvatarUrl != null) data['ai_avatar_url'] = aiAvatarUrl;
     if (birthday != null) data['birthday'] = birthday.toIso8601String().split('T')[0];
 
     if (data.isEmpty) return;
@@ -210,6 +212,9 @@ class AuthProvider extends ChangeNotifier {
       }
       if (avatarUrl != null && _profile != null) {
         _profile = _profile!.copyWith(avatarUrl: avatarUrl);
+      }
+      if (aiAvatarUrl != null && _profile != null) {
+        _profile = _profile!.copyWith(aiAvatarUrl: aiAvatarUrl);
       }
       if (birthday != null && _profile != null) {
         _profile = _profile!.copyWith(birthday: birthday);

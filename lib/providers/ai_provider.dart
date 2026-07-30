@@ -9,6 +9,7 @@ class AiProvider extends ChangeNotifier {
   String? _errorMessage;
   String _aiName = '知伴';
   String _userNickname = '';
+  String _chatStyle = '自然';
 
   AiProvider({
     required AiService aiService,
@@ -20,6 +21,7 @@ class AiProvider extends ChangeNotifier {
   AiService get aiService => _aiService;
   String get aiName => _aiName;
   String get userNickname => _userNickname;
+  String get chatStyle => _chatStyle;
 
   void setModel(AiModel model) {
     _currentModel = model;
@@ -36,6 +38,12 @@ class AiProvider extends ChangeNotifier {
   void setUserNickname(String nickname) {
     _userNickname = nickname;
     _aiService.setUserNickname(nickname);
+    notifyListeners();
+  }
+
+  void setChatStyle(String style) {
+    _chatStyle = style;
+    _aiService.setChatStyle(style);
     notifyListeners();
   }
 

@@ -5,6 +5,7 @@ enum OperationType {
   message_send,
   message_save,
   message_load,
+  message_delete,
   ai_response,
   ai_error,
   fact_extract,
@@ -46,6 +47,7 @@ extension OperationTypeExtension on OperationType {
       case OperationType.message_send: return '发送消息';
       case OperationType.message_save: return '保存消息';
       case OperationType.message_load: return '加载消息';
+      case OperationType.message_delete: return '删除消息';
       case OperationType.ai_response: return 'AI响应';
       case OperationType.ai_error: return 'AI错误';
       case OperationType.fact_extract: return '事实提取';
@@ -85,6 +87,7 @@ extension OperationTypeExtension on OperationType {
       case OperationType.message_send:
       case OperationType.message_save:
       case OperationType.message_load:
+      case OperationType.message_delete:
         return '消息';
       case OperationType.ai_response:
       case OperationType.ai_error:

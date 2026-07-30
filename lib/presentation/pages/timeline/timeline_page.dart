@@ -33,6 +33,12 @@ class _TimelinePageState extends State<TimelinePage> {
 
   final ScrollController _scrollController = ScrollController();
 
+  // 时间轴聚合级别：0=按天（详细）, 1=按周, 2=按月, 3=按年
+  int _aggregateLevel = 0;
+  bool _scaleChanged = false;
+
+  static const List<String> _levelLabels = ['日', '周', '月', '年'];
+
   @override
   void initState() {
     super.initState();
@@ -223,11 +229,14 @@ class _TimelinePageState extends State<TimelinePage> {
     final summaryController = TextEditingController(text: event.summary);
     DateTime? pickedDate = event.occurredAt;
     String selectedIcon = event.icon ?? '📝';
+    final customIconController = TextEditingController();
 
     final commonIcons = [
       '📝', '💡', '🌟', '❤️', '🎉', '🏆', '🏠', '💼',
       '🍽️', '☕', '🎵', '📚', '✈️', '💪', '🌱', '🌈',
       '📷', '🎁', '🔥', '🌙', '☀️', '⚡', '🎯', '😊',
+      '🎈', '🌸', '🐱', '🐶', '🌊', '🍦', '🍕', '🎸',
+      '⚽', '🏀', '🎮', '💻', '📱', '💰', '💎', '🏆',
     ];
 
     final result = await showModalBottomSheet<bool>(
@@ -282,37 +291,84 @@ class _TimelinePageState extends State<TimelinePage> {
                       ],
                     ),
                     const SizedBox(height: 16),
-                    // 图标选择
-                    Text('选择图标', style: TextStyle(fontSize: 12, color: AppColors.textTertiary)),
-                    const SizedBox(height: 8),
-                    SizedBox(
-                      height: 44,
-                      child: ListView.separated(
-                        scrollDirection: Axis.horizontal,
-                        itemCount: commonIcons.length,
-                        separatorBuilder: (_, __) => const SizedBox(width: 6),
-                        itemBuilder: (context, index) {
-                          final emoji = commonIcons[index];
-                          final isSelected = emoji == selectedIcon;
-                          return GestureDetector(
-                            onTap: () => setModalState(() => selectedIcon = emoji),
-                            child: Container(
-                              width: 44, height: 44,
-                              decoration: BoxDecoration(
-                                color: isSelected ? AppColors.primary.withOpacity(0.1) : AppColors.bg,
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(
-                                  color: isSelected ? AppColors.primary : AppColors.borderLight,
-                                  width: isSelected ? 1.5 : 1,
-                                ),
+                    // 当前选中的图标预览 + 自定义图标输入
+                    Row(
+                      children: [
+                        Container(
+                          width: 48, height: 48,
+                          decoration: BoxDecoration(
+                            color: AppColors.primary.withOpacity(0.08),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: AppColors.primary.withOpacity(0.3),
+                              width: 1.5,
+                            ),
+                          ),
+                          child: Center(
+                            child: Text(
+                              selectedIcon,
+                              style: const TextStyle(fontSize: 24),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: TextField(
+                            controller: customIconController,
+                            maxLength: 2,
+                            decoration: InputDecoration(
+                              hintText: '自定义图标（输入emoji）',
+                              hintStyle: const TextStyle(fontSize: 13, color: AppColors.textTertiary),
+                              counterText: '',
+                              filled: true,
+                              fillColor: AppColors.bg,
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(10),
+                                borderSide: BorderSide.none,
                               ),
-                              child: Center(
-                                child: Text(emoji, style: const TextStyle(fontSize: 20)),
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                            ),
+                            style: const TextStyle(fontSize: 16, color: AppColors.textPrimary),
+                            onChanged: (value) {
+                              final trimmed = value.trim();
+                              if (trimmed.isNotEmpty) {
+                                setModalState(() => selectedIcon = trimmed);
+                              }
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    // 图标网格（全部展示，使用 Wrap）
+                    Text('选择图标', style: const TextStyle(fontSize: 12, color: AppColors.textTertiary)),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: commonIcons.map((emoji) {
+                        final isSelected = emoji == selectedIcon;
+                        return GestureDetector(
+                          onTap: () {
+                            customIconController.clear();
+                            setModalState(() => selectedIcon = emoji);
+                          },
+                          child: Container(
+                            width: 44, height: 44,
+                            decoration: BoxDecoration(
+                              color: isSelected ? AppColors.primary.withOpacity(0.1) : AppColors.bg,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: isSelected ? AppColors.primary : AppColors.borderLight,
+                                width: isSelected ? 1.5 : 1,
                               ),
                             ),
-                          );
-                        },
-                      ),
+                            child: Center(
+                              child: Text(emoji, style: const TextStyle(fontSize: 20)),
+                            ),
+                          ),
+                        );
+                      }).toList(),
                     ),
                     const SizedBox(height: 16),
                     TextField(
@@ -464,6 +520,7 @@ class _TimelinePageState extends State<TimelinePage> {
     return groups;
   }
 
+  /// 根据聚合级别生成分组 key
   String _groupKey(TimelineEvent event) {
     final date = event.occurredAt ?? DateTime.now();
     final now = DateTime.now();
@@ -471,12 +528,34 @@ class _TimelinePageState extends State<TimelinePage> {
     final yesterday = today.subtract(const Duration(days: 1));
     final eventDate = DateTime(date.year, date.month, date.day);
 
-    if (eventDate == today) return '今天';
-    if (eventDate == yesterday) return '昨天';
-    if (date.year == now.year) {
-      return DateFormat('M月d日 EEEE', 'zh_CN').format(date);
+    // 按天：保持原逻辑（今天/昨天/日期）
+    if (_aggregateLevel == 0) {
+      if (eventDate == today) return '今天';
+      if (eventDate == yesterday) return '昨天';
+      if (date.year == now.year) {
+        return DateFormat('M月d日 EEEE', 'zh_CN').format(date);
+      }
+      return DateFormat('yyyy年M月d日', 'zh_CN').format(date);
     }
-    return DateFormat('yyyy年M月d日', 'zh_CN').format(date);
+
+    // 按周：以本周一为分组标识
+    if (_aggregateLevel == 1) {
+      final weekStart = date.subtract(Duration(days: date.weekday - 1));
+      final ws = DateTime(weekStart.year, weekStart.month, weekStart.day);
+      final weekEnd = ws.add(const Duration(days: 6));
+      if (date.year == now.year) {
+        return '${DateFormat('M月d日', 'zh_CN').format(ws)} - ${DateFormat('M月d日', 'zh_CN').format(weekEnd)}';
+      }
+      return '${DateFormat('yyyy年M月d日', 'zh_CN').format(ws)} - ${DateFormat('M月d日', 'zh_CN').format(weekEnd)}';
+    }
+
+    // 按月
+    if (_aggregateLevel == 2) {
+      return DateFormat('yyyy年M月', 'zh_CN').format(date);
+    }
+
+    // 按年
+    return DateFormat('yyyy年', 'zh_CN').format(date);
   }
 
   @override
@@ -493,33 +572,56 @@ class _TimelinePageState extends State<TimelinePage> {
                   ? _buildSkeletonLoading()
                   : _events.isEmpty
                       ? _buildEmptyState()
-                      : NotificationListener<ScrollNotification>(
-                          onNotification: (notification) {
-                            if (notification is ScrollUpdateNotification) {
-                              if (notification.metrics.pixels <= 100 &&
-                                  !_isLoading &&
-                                  _hasMore) {
-                                _loadMore();
-                              }
-                            }
-                            return false;
+                      : GestureDetector(
+                          behavior: HitTestBehavior.translucent,
+                          onScaleStart: (_) {
+                            _scaleChanged = false;
                           },
-                          child: RefreshIndicator(
-                            onRefresh: _loadEvents,
-                            color: AppColors.primary,
-                            child: ListView.builder(
-                              controller: _scrollController,
-                              padding: const EdgeInsets.fromLTRB(0, 0, 16, 72),
-                              itemCount: _groupedEvents.length + 1, // +1 for "正在记录"
-                              itemBuilder: (context, index) {
-                                if (index == _groupedEvents.length) {
-                                  return _buildRecordingFooter();
+                          onScaleUpdate: (details) {
+                            if (_scaleChanged) return;
+                            // 双指捏合放大（向外）→ 更详细
+                            if (details.scale > 1.25 && _aggregateLevel > 0) {
+                              setState(() {
+                                _aggregateLevel--;
+                                _scaleChanged = true;
+                              });
+                            }
+                            // 双指捏合缩小（向内）→ 更聚合
+                            else if (details.scale < 0.75 && _aggregateLevel < 3) {
+                              setState(() {
+                                _aggregateLevel++;
+                                _scaleChanged = true;
+                              });
+                            }
+                          },
+                          child: NotificationListener<ScrollNotification>(
+                            onNotification: (notification) {
+                              if (notification is ScrollUpdateNotification) {
+                                if (notification.metrics.pixels <= 100 &&
+                                    !_isLoading &&
+                                    _hasMore) {
+                                  _loadMore();
                                 }
-                                final keys = _groupedEvents.keys.toList();
-                                final key = keys[index];
-                                final events = _groupedEvents[key]!;
-                                return _buildDateGroup(key, events, index == 0, index == _groupedEvents.length - 1);
-                              },
+                              }
+                              return false;
+                            },
+                            child: RefreshIndicator(
+                              onRefresh: _loadEvents,
+                              color: AppColors.primary,
+                              child: ListView.builder(
+                                controller: _scrollController,
+                                padding: const EdgeInsets.fromLTRB(0, 0, 16, 72),
+                                itemCount: _groupedEvents.length + 1, // +1 for "正在记录"
+                                itemBuilder: (context, index) {
+                                  if (index == _groupedEvents.length) {
+                                    return _buildRecordingFooter();
+                                  }
+                                  final keys = _groupedEvents.keys.toList();
+                                  final key = keys[index];
+                                  final events = _groupedEvents[key]!;
+                                  return _buildDateGroup(key, events, index == 0, index == _groupedEvents.length - 1);
+                                },
+                              ),
                             ),
                           ),
                         ),
@@ -561,6 +663,42 @@ class _TimelinePageState extends State<TimelinePage> {
               ),
             ),
           const Spacer(),
+          // 聚合级别指示器
+          GestureDetector(
+            onTap: () {
+              setState(() {
+                _aggregateLevel = (_aggregateLevel + 1) % 4;
+              });
+            },
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: AppColors.primary.withOpacity(0.08),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: AppColors.primary.withOpacity(0.2)),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.zoom_in_out_outlined,
+                    size: 14,
+                    color: AppColors.primary,
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    '按${_levelLabels[_aggregateLevel]}',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.primary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
           GestureDetector(
             onTap: _loadEvents,
             child: Container(
@@ -636,7 +774,7 @@ class _TimelinePageState extends State<TimelinePage> {
         children: [
           // 日期标题
           Padding(
-            padding: const EdgeInsets.only(left: 52, bottom: 10),
+            padding: const EdgeInsets.only(left: 64, bottom: 10),
             child: Row(
               children: [
                 Container(
@@ -677,72 +815,97 @@ class _TimelinePageState extends State<TimelinePage> {
     );
   }
 
-  /// 带时间轴的事件卡片（时间显示在时间轴上）
+  /// 带时间轴的事件卡片（日期+时间显示在时间轴上）
   Widget _buildEventCardWithTimeline(TimelineEvent event, bool isLastEvent) {
-    final timeStr = event.occurredAt != null
-        ? DateFormat('HH:mm', 'zh_CN').format(event.occurredAt!)
-        : '';
+    final date = event.occurredAt;
+    // 日期标签：年/月/日
+    final dateStr = date != null ? DateFormat('M月d日', 'zh_CN').format(date) : '';
+    final yearStr = date != null ? '${date.year}年' : '';
+    // 时间标签：时分
+    final timeStr = date != null ? DateFormat('HH:mm', 'zh_CN').format(date) : '';
+    final now = DateTime.now();
+    final isDifferentYear = date != null && date.year != now.year;
 
     return IntrinsicHeight(
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // 左侧时间轴（含时间文字）
+          // 左侧时间轴（含日期+时间）
           SizedBox(
-            width: 52,
+            width: 64,
             child: Stack(
               alignment: Alignment.topCenter,
               children: [
-                // 时间文字
+                // 年份（仅在跨年时显示）
+                if (isDifferentYear && yearStr.isNotEmpty)
+                  Positioned(
+                    top: 0,
+                    child: Text(
+                      yearStr,
+                      style: TextStyle(
+                        fontSize: 9,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.primary,
+                      ),
+                    ),
+                  ),
+                // 日期文字（M月d日）
+                if (dateStr.isNotEmpty)
+                  Positioned(
+                    top: isDifferentYear ? 13 : 2,
+                    child: Text(
+                      dateStr,
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                  ),
+                // 时间文字（HH:mm）
                 if (timeStr.isNotEmpty)
                   Positioned(
-                    top: 2,
+                    top: isDifferentYear ? 28 : 17,
                     child: Text(
                       timeStr,
                       style: TextStyle(
                         fontSize: 10,
-                        fontWeight: FontWeight.w500,
+                        fontWeight: FontWeight.w400,
                         color: AppColors.textTertiary,
                       ),
                     ),
                   ),
-                // 节点圆点
+                // 节点圆点（更明显）
                 Positioned(
-                  top: 20,
+                  top: isDifferentYear ? 44 : 33,
                   child: Container(
-                    width: 10,
-                    height: 10,
+                    width: 12,
+                    height: 12,
                     decoration: BoxDecoration(
                       color: AppColors.primary,
                       shape: BoxShape.circle,
-                      border: Border.all(color: AppColors.surface, width: 2),
+                      border: Border.all(color: AppColors.surface, width: 2.5),
                       boxShadow: [
                         BoxShadow(
-                          color: AppColors.primary.withOpacity(0.25),
-                          blurRadius: 4,
+                          color: AppColors.primary.withOpacity(0.35),
+                          blurRadius: 6,
                           spreadRadius: 1,
                         ),
                       ],
                     ),
                   ),
                 ),
-                // 向下延伸的竖线
+                // 向下延伸的竖线（更明显）
                 if (!isLastEvent)
                   Positioned(
-                    top: 34,
+                    top: isDifferentYear ? 58 : 47,
                     bottom: 0,
+                    left: 26,
                     child: Container(
-                      width: 2,
+                      width: 3,
                       decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [
-                            AppColors.primary.withOpacity(0.3),
-                            AppColors.primary.withOpacity(0.05),
-                          ],
-                        ),
-                        borderRadius: BorderRadius.circular(1),
+                        color: AppColors.primary.withOpacity(0.45),
+                        borderRadius: BorderRadius.circular(1.5),
                       ),
                     ),
                   ),
@@ -963,19 +1126,19 @@ class _TimelinePageState extends State<TimelinePage> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             SizedBox(
-              width: 52,
+              width: 64,
               child: Stack(
                 alignment: Alignment.topCenter,
                 children: [
                   Positioned(
-                    top: 20,
+                    top: 33,
                     child: Container(
-                      width: 10,
-                      height: 10,
+                      width: 12,
+                      height: 12,
                       decoration: BoxDecoration(
                         color: AppColors.primary.withOpacity(0.3),
                         shape: BoxShape.circle,
-                        border: Border.all(color: AppColors.surface, width: 2),
+                        border: Border.all(color: AppColors.surface, width: 2.5),
                       ),
                     ),
                   ),
@@ -1298,14 +1461,14 @@ class _TimelinePageState extends State<TimelinePage> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             SizedBox(
-              width: 52,
+              width: 64,
               child: Stack(
                 alignment: Alignment.topCenter,
                 children: [
                   Positioned(
-                    top: 20,
+                    top: 33,
                     child: Container(
-                      width: 10, height: 10,
+                      width: 12, height: 12,
                       decoration: BoxDecoration(
                         color: AppColors.bgTertiary,
                         shape: BoxShape.circle,
@@ -1314,10 +1477,11 @@ class _TimelinePageState extends State<TimelinePage> {
                   ),
                   if (index < 4)
                     Positioned(
-                      top: 34,
+                      top: 47,
                       bottom: 0,
+                      left: 26,
                       child: Container(
-                        width: 2,
+                        width: 3,
                         color: AppColors.bgTertiary,
                       ),
                     ),

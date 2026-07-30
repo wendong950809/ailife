@@ -8,6 +8,7 @@ import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:file_picker/file_picker.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../data/models/user_profile.dart';
 import '../../../data/services/agent_service.dart';
 import '../../../data/services/ai_service.dart';
 import '../../../data/services/logging_service.dart';
@@ -100,7 +101,7 @@ class _ChatPageState extends State<ChatPage> {
     try {
       final response = await Supabase.instance.client
           .from('profiles')
-          .select('ai_name, ai_avatar_url, nickname')
+          .select('ai_name, ai_avatar_url, nickname, chat_style')
           .eq('id', user.id)
           .single();
 
@@ -112,6 +113,8 @@ class _ChatPageState extends State<ChatPage> {
         });
         context.read<AiProvider>().setAiName(_aiName);
         context.read<AiProvider>().setUserNickname(_userNickname);
+        final savedStyle = (response['chat_style'] as String?) ?? '自然';
+        context.read<AiProvider>().setChatStyle(savedStyle);
       }
     } catch (e) {
       debugPrint('加载设置失败: $e');
@@ -174,6 +177,22 @@ class _ChatPageState extends State<ChatPage> {
         context.read<AiProvider>().setUserNickname(newNickname);
         cleaned = cleaned.replaceFirst(nicknameMatch.group(0)!, '');
         hasCommand = true;
+      }
+    }
+
+    // 检测设置生日的标记：{{SET_BIRTHDAY:yyyy-MM-dd}}
+    final birthdayMatch = RegExp(r'\{\{SET_BIRTHDAY:(\d{4}-\d{2}-\d{2})\}\}').firstMatch(cleaned);
+    if (birthdayMatch != null) {
+      final dateStr = birthdayMatch.group(1)?.trim();
+      if (dateStr != null) {
+        try {
+          final birthday = DateTime.parse(dateStr);
+          context.read<AuthProvider>().updateProfile(birthday: birthday);
+          cleaned = cleaned.replaceFirst(birthdayMatch.group(0)!, '');
+          hasCommand = true;
+        } catch (e) {
+          debugPrint('解析生日日期失败: $e');
+        }
       }
     }
 
@@ -264,6 +283,7 @@ class _ChatPageState extends State<ChatPage> {
           final content = msg['content'] as String?;
           if (role != null && content != null) {
             _messages.add({
+              'id': msg['id'] as String?,
               'role': role,
               'content': content,
               'tags': <String>[],
@@ -354,6 +374,7 @@ class _ChatPageState extends State<ChatPage> {
           final content = msg['content'] as String?;
           if (role != null && content != null) {
             newMessages.add({
+              'id': msg['id'] as String?,
               'role': role,
               'content': content,
               'tags': <String>[],
@@ -582,6 +603,11 @@ class _ChatPageState extends State<ChatPage> {
     final startTime = DateTime.now();
     final messageId = await _saveMessage('user', text);
 
+    // 将数据库返回的 id 存入本地消息，供删除等操作使用
+    if (messageId != null && _messages.isNotEmpty) {
+      _messages[_messages.length - 1]['id'] = messageId;
+    }
+
     await _loggingService?.logMessageSend(
       userId: user.id,
       content: text,
@@ -649,7 +675,10 @@ class _ChatPageState extends State<ChatPage> {
       });
 
       if (cleanedReply.isNotEmpty) {
-        await _saveMessage('assistant', cleanedReply);
+        final aiMessageId = await _saveMessage('assistant', cleanedReply);
+        if (aiMessageId != null && _messages.isNotEmpty) {
+          _messages.last['id'] = aiMessageId;
+        }
       }
 
       await _loggingService?.logAiResponse(
@@ -705,6 +734,235 @@ class _ChatPageState extends State<ChatPage> {
         margin: const EdgeInsets.only(bottom: 80, left: 20, right: 20),
       ),
     );
+  }
+
+  /// 长按用户消息 → 确认删除
+  /// 级联删除：用户消息 + AI回复 + timeline事件 + extracted_facts（自动级联）+ fact_groups（自动级联）
+  void _confirmDeleteMessage(int msgIndex) {
+    final msg = _messages[msgIndex];
+    final userMessageId = msg['id'] as String?;
+
+    // 无法删除没有 id 的消息（如欢迎语）
+    if (userMessageId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('该消息无法删除'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+      return;
+    }
+
+    final content = (msg['content'] as String?) ?? '';
+    final preview = content.length > 30 ? '${content.substring(0, 30)}...' : content;
+
+    // 找到配对的 AI 回复（用户消息的下一条 assistant 消息）
+    int? aiReplyIndex;
+    if (msgIndex + 1 < _messages.length &&
+        _messages[msgIndex + 1]['role'] == 'assistant') {
+      aiReplyIndex = msgIndex + 1;
+    }
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40, height: 4,
+                  decoration: BoxDecoration(
+                    color: AppColors.borderLight,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+              Row(
+                children: [
+                  Container(
+                    width: 36, height: 36,
+                    decoration: BoxDecoration(
+                      color: AppColors.stateError.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(Icons.delete_outline, color: AppColors.stateError, size: 20),
+                  ),
+                  const SizedBox(width: 12),
+                  const Text(
+                    '删除这条对话',
+                    style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Text(
+                '"$preview"',
+                style: TextStyle(fontSize: 13, color: AppColors.textTertiary),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppColors.bg,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('将同步删除：', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.textSecondary)),
+                    const SizedBox(height: 6),
+                    if (aiReplyIndex != null)
+                      _buildDeleteItem('AI 的回复'),
+                    _buildDeleteItem('时间线相关事件'),
+                    _buildDeleteItem('提取的事实与记忆'),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 20),
+              Row(
+                children: [
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () => Navigator.pop(context),
+                      child: Container(
+                        height: 44,
+                        decoration: BoxDecoration(
+                          color: AppColors.bg,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Center(
+                          child: Text('取消', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: AppColors.textSecondary)),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () {
+                        Navigator.pop(context);
+                        _deleteMessageCascade(msgIndex, userMessageId, aiReplyIndex);
+                      },
+                      child: Container(
+                        height: 44,
+                        decoration: BoxDecoration(
+                          color: AppColors.stateError,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Center(
+                          child: Text('删除', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Colors.white)),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDeleteItem(String text) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 4),
+      child: Row(
+        children: [
+          Icon(Icons.check_circle_outline, size: 14, color: AppColors.textTertiary),
+          const SizedBox(width: 6),
+          Text(text, style: TextStyle(fontSize: 12, color: AppColors.textTertiary)),
+        ],
+      ),
+    );
+  }
+
+  /// 执行级联删除
+  Future<void> _deleteMessageCascade(int userMsgIndex, String userMessageId, int? aiReplyIndex) async {
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user == null) return;
+
+    final aiMessageId = aiReplyIndex != null
+        ? _messages[aiReplyIndex]['id'] as String?
+        : null;
+
+    final msgContent = _messages[userMsgIndex]['content'] ?? '';
+
+    try {
+      // 1. 先删除 timeline 中引用该消息的事件（FK 是 SET NULL，需手动删）
+      await Supabase.instance.client
+          .from('timeline')
+          .delete()
+          .eq('message_id', userMessageId);
+
+      // 2. 删除 AI 回复消息（如果有 id）
+      if (aiMessageId != null) {
+        await Supabase.instance.client
+            .from('messages')
+            .delete()
+            .eq('id', aiMessageId);
+      }
+
+      // 3. 删除用户消息（extracted_facts 和 fact_groups 会自动 CASCADE）
+      await Supabase.instance.client
+          .from('messages')
+          .delete()
+          .eq('id', userMessageId);
+
+      // 4. 从本地列表中移除（先移除 AI 回复，再移除用户消息，注意索引顺序）
+      setState(() {
+        if (aiReplyIndex != null) {
+          _messages.removeAt(aiReplyIndex);
+        }
+        _messages.removeAt(userMsgIndex);
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('已删除对话及相关记录'),
+            duration: const Duration(seconds: 2),
+            backgroundColor: AppColors.stateSuccess,
+            behavior: SnackBarBehavior.floating,
+            margin: const EdgeInsets.only(bottom: 80, left: 20, right: 20),
+          ),
+        );
+      }
+
+      await _loggingService?.log(
+        userId: user.id,
+        operationType: OperationType.message_delete,
+        targetTable: 'messages',
+        status: OperationStatus.success,
+        message: '删除消息: $msgContent',
+        responseData: {
+          'user_message_id': userMessageId,
+          'ai_message_id': aiMessageId,
+        },
+      );
+    } catch (e) {
+      debugPrint('删除消息失败: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('删除失败: $e'),
+            duration: const Duration(seconds: 3),
+            backgroundColor: AppColors.stateError,
+          ),
+        );
+      }
+    }
   }
 
   void _toggleRecording() {
@@ -912,6 +1170,7 @@ class _ChatPageState extends State<ChatPage> {
           isUser: isUser,
           isError: isError,
           tags: tags,
+          msgIndex: msgIndex,
           isGenerating: _isGenerating && msgIndex == _messages.length - 1 && !isUser && !isError,
         );
       },
@@ -1203,11 +1462,59 @@ class _ChatPageState extends State<ChatPage> {
     );
   }
 
-  Widget _buildAiAvatar() {
-    if (_aiAvatarUrl != null && _aiAvatarUrl!.isNotEmpty) {
+  Widget _buildUserAvatar() {
+    final auth = context.read<AuthProvider>();
+    final profile = auth.profile;
+    final avatarUrl = profile?.avatarUrl;
+
+    if (avatarUrl != null && avatarUrl.isNotEmpty) {
       return ClipOval(
         child: Image.network(
-          _aiAvatarUrl!,
+          avatarUrl,
+          width: 36,
+          height: 36,
+          fit: BoxFit.cover,
+          errorBuilder: (context, error, stackTrace) => _buildDefaultUserAvatar(auth, profile),
+        ),
+      );
+    }
+    return _buildDefaultUserAvatar(auth, profile);
+  }
+
+  Widget _buildDefaultUserAvatar(AuthProvider auth, UserProfile? profile) {
+    final email = auth.user?.email;
+    final displayChar = profile?.username?.isNotEmpty == true
+        ? profile!.username![0]
+        : (email?.isNotEmpty == true ? email![0].toUpperCase() : '?');
+    return Container(
+      width: 36,
+      height: 36,
+      decoration: const BoxDecoration(
+        color: Color(0xFF1A1D26),
+        shape: BoxShape.circle,
+      ),
+      child: Center(
+        child: Text(
+          displayChar,
+          style: const TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w700,
+            color: Colors.white,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAiAvatar() {
+    // 优先使用 AuthProvider 中的实时数据，回退到本地缓存
+    final authAvatarUrl = context.read<AuthProvider>().profile?.aiAvatarUrl;
+    final avatarUrl = authAvatarUrl ?? _aiAvatarUrl;
+
+    if (avatarUrl != null && avatarUrl.isNotEmpty) {
+      return ClipOval(
+        child: Image.network(
+          avatarUrl,
           width: 40,
           height: 40,
           fit: BoxFit.cover,
@@ -1317,32 +1624,42 @@ class _ChatPageState extends State<ChatPage> {
     required bool isUser,
     required bool isError,
     required List<String> tags,
+    int? msgIndex,
     bool isGenerating = false,
   }) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final maxBubbleWidth = screenWidth * 0.72;
+
     return Container(
-      margin: const EdgeInsets.symmetric(vertical: 5),
+      margin: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: isUser ? MainAxisAlignment.end : MainAxisAlignment.start,
         children: [
           if (!isUser)
             Padding(
-              padding: const EdgeInsets.only(right: 10),
+              padding: const EdgeInsets.only(right: 8),
               child: _buildAiAvatar(),
             ),
-          Expanded(
-            child: Container(
+          ConstrainedBox(
+            constraints: BoxConstraints(maxWidth: maxBubbleWidth),
+            child: GestureDetector(
+              onLongPress: isUser && msgIndex != null
+                  ? () => _confirmDeleteMessage(msgIndex)
+                  : null,
+              child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
               decoration: BoxDecoration(
                 color: isUser ? AppColors.primary : AppColors.surface,
                 borderRadius: BorderRadius.only(
-                  topLeft: const Radius.circular(20),
-                  topRight: const Radius.circular(20),
-                  bottomLeft: isUser ? const Radius.circular(20) : const Radius.circular(6),
-                  bottomRight: isUser ? const Radius.circular(6) : const Radius.circular(20),
+                  topLeft: const Radius.circular(18),
+                  topRight: const Radius.circular(18),
+                  bottomLeft: isUser ? const Radius.circular(18) : const Radius.circular(4),
+                  bottomRight: isUser ? const Radius.circular(4) : const Radius.circular(18),
                 ),
                 boxShadow: isUser
-                    ? [BoxShadow(color: AppColors.primary.withOpacity(0.2), blurRadius: 10, offset: const Offset(0, 4))]
-                    : [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 6, offset: const Offset(0, 2))],
+                    ? [BoxShadow(color: AppColors.primary.withOpacity(0.15), blurRadius: 8, offset: const Offset(0, 2))]
+                    : [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 4, offset: const Offset(0, 1))],
               ),
               child: Column(
                 crossAxisAlignment: isUser ? CrossAxisAlignment.end : CrossAxisAlignment.start,
@@ -1354,52 +1671,47 @@ class _ChatPageState extends State<ChatPage> {
                             style: const TextStyle(
                               fontSize: 15,
                               color: Colors.white,
-                              height: 1.6,
+                              height: 1.5,
                               fontWeight: FontWeight.w400,
                             ),
-                            showCursor: true,
-                            cursorColor: Colors.white,
                           )
-                        : Container(
-                            child: MarkdownBody(
-                              data: content,
-                              styleSheet: MarkdownStyleSheet(
-                                p: TextStyle(
-                                  fontSize: 15,
-                                  color: AppColors.textPrimary,
-                                  height: 1.6,
-                                  fontWeight: FontWeight.w400,
-                                ),
-                                listBullet: TextStyle(
-                                  color: AppColors.textPrimary,
-                                  fontSize: 15,
-                                  height: 1.6,
-                                ),
-                                code: TextStyle(
-                                  backgroundColor: AppColors.bgSecondary,
-                                  color: AppColors.primary,
-                                  fontSize: 13,
-                                ),
-                                codeblockDecoration: BoxDecoration(
-                                  color: AppColors.bgSecondary,
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                                blockquoteDecoration: BoxDecoration(
-                                  color: AppColors.primaryTint,
-                                  borderRadius: BorderRadius.circular(10),
-                                  border: Border(
-                                    left: BorderSide(color: AppColors.primary, width: 3),
-                                  ),
+                        : MarkdownBody(
+                            data: content,
+                            styleSheet: MarkdownStyleSheet(
+                              p: TextStyle(
+                                fontSize: 15,
+                                color: AppColors.textPrimary,
+                                height: 1.5,
+                              ),
+                              listBullet: TextStyle(
+                                color: AppColors.textPrimary,
+                                fontSize: 15,
+                                height: 1.5,
+                              ),
+                              code: TextStyle(
+                                backgroundColor: AppColors.bgSecondary,
+                                color: AppColors.primary,
+                                fontSize: 13,
+                              ),
+                              codeblockDecoration: BoxDecoration(
+                                color: AppColors.bgSecondary,
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              blockquoteDecoration: BoxDecoration(
+                                color: AppColors.primaryTint,
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border(
+                                  left: BorderSide(color: AppColors.primary, width: 3),
                                 ),
                               ),
                             ),
                           ),
                   if (isGenerating)
-                    const Padding(
-                      padding: EdgeInsets.only(top: 8),
+                    Padding(
+                      padding: const EdgeInsets.only(top: 6),
                       child: SizedBox(
-                        height: 4,
-                        width: 24,
+                        height: 3,
+                        width: 20,
                         child: LinearProgressIndicator(
                           color: AppColors.primary,
                           backgroundColor: Colors.transparent,
@@ -1408,24 +1720,24 @@ class _ChatPageState extends State<ChatPage> {
                     ),
                   if (!isUser && !isGenerating && content.isNotEmpty && !isError)
                     Padding(
-                      padding: const EdgeInsets.only(top: 8),
+                      padding: const EdgeInsets.only(top: 6),
                       child: GestureDetector(
                         onTap: () => _copyMessage(content),
                         child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                           decoration: BoxDecoration(
                             color: AppColors.primaryTint,
-                            borderRadius: BorderRadius.circular(16),
+                            borderRadius: BorderRadius.circular(12),
                           ),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Icon(Icons.copy, size: 14, color: AppColors.primary),
-                              const SizedBox(width: 5),
+                              Icon(Icons.copy, size: 12, color: AppColors.primary),
+                              const SizedBox(width: 4),
                               Text(
                                 '复制',
                                 style: TextStyle(
-                                  fontSize: 13,
+                                  fontSize: 12,
                                   color: AppColors.primary,
                                   fontWeight: FontWeight.w500,
                                 ),
@@ -1438,30 +1750,47 @@ class _ChatPageState extends State<ChatPage> {
                 ],
               ),
             ),
+            ),
           ),
-          if (isUser) const SizedBox(width: 50),
+          if (isUser)
+            Padding(
+              padding: const EdgeInsets.only(left: 8),
+              child: _buildUserAvatar(),
+            ),
         ],
       ),
     );
   }
 
   Widget _buildInputBar() {
+    final hasText = _messageController.text.trim().isNotEmpty;
     return Container(
-      padding: const EdgeInsets.fromLTRB(8, 6, 8, 8),
-      color: AppColors.bg,
+      padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
+      decoration: BoxDecoration(
+        color: AppColors.bg,
+        border: Border(
+          top: BorderSide(color: AppColors.borderLight.withOpacity(0.5), width: 0.5),
+        ),
+      ),
       child: Column(
         children: [
           if (_isRecording)
             Container(
               margin: const EdgeInsets.only(bottom: 8),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
               decoration: BoxDecoration(
-                color: AppColors.stateError.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(12),
+                color: AppColors.stateError.withOpacity(0.08),
+                borderRadius: BorderRadius.circular(16),
               ),
               child: Row(
                 children: [
-                  Icon(Icons.mic, color: AppColors.stateError, size: 18),
+                  Container(
+                    width: 8, height: 8,
+                    decoration: BoxDecoration(
+                      color: AppColors.stateError,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
@@ -1475,18 +1804,14 @@ class _ChatPageState extends State<ChatPage> {
                   GestureDetector(
                     onTap: _toggleRecording,
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
                       decoration: BoxDecoration(
                         color: AppColors.stateError,
                         borderRadius: BorderRadius.circular(10),
                       ),
-                      child: Text(
+                      child: const Text(
                         '完成',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                        ),
+                        style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600),
                       ),
                     ),
                   ),
@@ -1494,76 +1819,108 @@ class _ChatPageState extends State<ChatPage> {
               ),
             ),
           Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
             children: [
+              // 图片按钮
               GestureDetector(
                 onTap: _pickImage,
                 child: Container(
-                  width: 38,
-                  height: 38,
+                  width: 38, height: 38,
                   decoration: BoxDecoration(
                     color: AppColors.surface,
-                    borderRadius: BorderRadius.circular(19),
+                    shape: BoxShape.circle,
                     border: Border.all(color: AppColors.borderLight),
                   ),
-                  child: Icon(Icons.image_outlined, color: AppColors.textSecondary, size: 22),
+                  child: const Icon(Icons.image_outlined, color: AppColors.textTertiary, size: 18),
                 ),
               ),
-              const SizedBox(width: 6),
+              const SizedBox(width: 8),
+              // 语音按钮
               GestureDetector(
                 onLongPress: _toggleRecording,
                 onTap: _toggleRecording,
                 child: Container(
-                  width: 38,
-                  height: 38,
+                  width: 38, height: 38,
                   decoration: BoxDecoration(
                     color: _isRecording ? AppColors.stateError : AppColors.surface,
-                    borderRadius: BorderRadius.circular(19),
+                    shape: BoxShape.circle,
                     border: Border.all(color: _isRecording ? Colors.transparent : AppColors.borderLight),
-                    boxShadow: _isRecording ? [BoxShadow(color: AppColors.stateError.withOpacity(0.3), blurRadius: 6)] : [],
                   ),
                   child: Icon(
-                    _isRecording ? Icons.stop : Icons.mic_outlined,
-                    color: _isRecording ? Colors.white : AppColors.textSecondary,
-                    size: 22,
+                    _isRecording ? Icons.stop_rounded : Icons.mic_none_rounded,
+                    color: _isRecording ? Colors.white : AppColors.textTertiary,
+                    size: 18,
                   ),
                 ),
               ),
-              const SizedBox(width: 6),
+              const SizedBox(width: 10),
+              // 输入框（更优雅的圆角胶囊）
               Expanded(
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  constraints: const BoxConstraints(maxHeight: 100, minHeight: 38),
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
                   decoration: BoxDecoration(
                     color: AppColors.surface,
-                    borderRadius: BorderRadius.circular(24),
+                    borderRadius: BorderRadius.circular(20),
                     border: Border.all(color: AppColors.borderLight),
-                    boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 4)],
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.02),
+                        blurRadius: 4,
+                        offset: const Offset(0, 1),
+                      ),
+                    ],
                   ),
-                  child: TextField(
-                    controller: _messageController,
-                    textInputAction: TextInputAction.send,
-                    keyboardType: TextInputType.text,
-                    decoration: const InputDecoration(
-                      border: InputBorder.none,
-                      isCollapsed: true,
-                      hintText: '输入消息...',
-                      hintStyle: TextStyle(color: AppColors.textTertiary),
-                    ),
-                    onSubmitted: (_) => _sendMessage(),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: _messageController,
+                          textInputAction: TextInputAction.send,
+                          keyboardType: TextInputType.multiline,
+                          maxLines: null,
+                          decoration: const InputDecoration(
+                            border: InputBorder.none,
+                            isCollapsed: true,
+                            contentPadding: EdgeInsets.symmetric(vertical: 10),
+                            hintText: '说点什么...',
+                            hintStyle: TextStyle(color: AppColors.textTertiary, fontSize: 14),
+                          ),
+                          style: const TextStyle(fontSize: 14, color: AppColors.textPrimary),
+                          onSubmitted: (_) => _sendMessage(),
+                          onChanged: (_) => setState(() {}),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
-              const SizedBox(width: 6),
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: AppColors.primary,
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: [BoxShadow(color: AppColors.primary.withOpacity(0.3), blurRadius: 8, offset: const Offset(0, 2))],
-                ),
-                child: IconButton(
-                  icon: const Icon(Icons.send, color: Colors.white, size: 22),
-                  onPressed: _sendMessage,
+              const SizedBox(width: 8),
+              // 发送按钮（有内容时高亮）
+              GestureDetector(
+                onTap: _sendMessage,
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  width: 38, height: 38,
+                  decoration: BoxDecoration(
+                    gradient: hasText
+                        ? const LinearGradient(
+                            colors: [AppColors.primary, AppColors.primaryLight],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          )
+                        : null,
+                    color: hasText ? null : AppColors.bgSecondary,
+                    shape: BoxShape.circle,
+                    boxShadow: hasText
+                        ? [BoxShadow(color: AppColors.primary.withOpacity(0.3), blurRadius: 8, offset: const Offset(0, 2))]
+                        : null,
+                  ),
+                  child: Icon(
+                    Icons.arrow_upward_rounded,
+                    color: hasText ? Colors.white : AppColors.textTertiary,
+                    size: 20,
+                  ),
                 ),
               ),
             ],

@@ -18,6 +18,24 @@ class AiService {
   final String? _openaiKey;
   String _aiName = '知伴';
   String _userNickname = '';
+  String _chatStyle = '自然';
+
+  String _stylePrompt() {
+    switch (_chatStyle) {
+      case '简洁':
+        return '\n【对话风格】\n- 简洁明了，惜字如金\n- 每次回复不超过3句话\n- 不说废话，直击要点';
+      case '温柔':
+        return '\n【对话风格】\n- 语气温柔细腻，像春天的微风\n- 多用柔和的语气词\n- 关心用户感受，善解人意';
+      case '幽默':
+        return '\n【对话风格】\n- 适度幽默，偶尔讲个冷笑话\n- 用轻松的方式聊严肃的话题\n- 像一个有趣的灵魂伴侣';
+      case '理性':
+        return '\n【对话风格】\n- 理性客观，条理清晰\n- 喜欢用1、2、3分点表达\n- 给出分析和建议，不情绪化';
+      case '活泼':
+        return '\n【对话风格】\n- 活泼开朗，元气满满\n- 多用感叹号和emoji\n- 像一个充满正能量的好朋友';
+      default:
+        return '';
+    }
+  }
 
   String _buildSystemPrompt() {
     final hasCustomName = _aiName != '知伴';
@@ -62,7 +80,12 @@ ${_userNickname.isNotEmpty ? '- 回答："我叫你$_userNickname呀"' : '- 回�
    - 然后再接正常的回复内容（比如"好的，XX！很高兴认识你～"）
    - 注意：必须是用户明确在让你改称呼，疑问句不算
 
-重要：只有当用户明确是在下达"改名/改称呼"的指令时才加标记，单纯的提问、闲聊、讨论都不算。
+3. 用户告诉你他/她的生日（比如"我的生日是X月X日"、"我X年X月X日出生"、"帮我记一下我的生日是X月X号"等）：
+   - 回复最开头加上：{{SET_BIRTHDAY:yyyy-MM-dd}}
+   - 然后再接正常的回复内容（比如"好的，我记下了，你的生日是X月X日～"）
+   - 注意：日期格式必须是 yyyy-MM-dd（例如 1995-06-15），年份用4位数字，月日用2位数字补零
+
+重要：只有当用户明确是在下达"改名/改称呼/记生日"的指令时才加标记，单纯的提问、闲聊、讨论都不算。
 
 【你的角色】
 你是用户最信任的伙伴，陪伴用户记录生活、分析问题、规划未来。
@@ -71,6 +94,7 @@ ${_userNickname.isNotEmpty ? '- 回答："我叫你$_userNickname呀"' : '- 回�
 【重要提醒】
 - 你现在的名字是"$_aiName"，不管之前的对话中出现过什么名字，都以"$_aiName"为准
 - 如果之前的对话中你用了其他名字自称，那是因为用户后来给你改了名字，现在请始终用"$_aiName"
+${_stylePrompt()}
 ''';
     } else {
       return '''
@@ -103,12 +127,18 @@ ${_userNickname.isNotEmpty ? '- 回答："我叫你$_userNickname呀"' : '- 回�
    - 然后再接正常的回复内容（比如"好的，XX！很高兴认识你～"）
    - 注意：必须是用户明确在让你改称呼，疑问句不算
 
-重要：只有当用户明确是在下达"改名/改称呼"的指令时才加标记，单纯的提问、闲聊、讨论都不算。
+3. 用户告诉你他/她的生日（比如"我的生日是X月X日"、"我X年X月X日出生"、"帮我记一下我的生日是X月X号"等）：
+   - 回复最开头加上：{{SET_BIRTHDAY:yyyy-MM-dd}}
+   - 然后再接正常的回复内容（比如"好的，我记下了，你的生日是X月X日～"）
+   - 注意：日期格式必须是 yyyy-MM-dd（例如 1995-06-15），年份用4位数字，月日用2位数字补零
+
+重要：只有当用户明确是在下达"改名/改称呼/记生日"的指令时才加标记，单纯的提问、闲聊、讨论都不算。
 
 你的目标：成为用户最信任的伙伴，帮助他们更好地理解自己、规划人生。
 
 【重要提醒】
 - 你的名字始终是"知伴"，如果用户在对话中给你改过名字，请以当前名字为准
+${_stylePrompt()}
 ''';
     }
   }
@@ -136,6 +166,12 @@ ${_userNickname.isNotEmpty ? '- 回答："我叫你$_userNickname呀"' : '- 回�
   }
 
   String get userNickname => _userNickname;
+
+  void setChatStyle(String style) {
+    _chatStyle = style;
+  }
+
+  String get chatStyle => _chatStyle;
 
   bool isOpenaiModel(AiModel model) {
     return model == AiModel.gpt4oMini ||
@@ -184,9 +220,16 @@ ${_userNickname.isNotEmpty ? '- 回答："我叫你$_userNickname呀"' : '- 回�
       'model': _currentModel.id,
       'messages': [
         {'role': 'system', 'content': systemPrompt},
-        ...messages.map((m) => {
-              'role': m['role'],
-              'content': m['content'],
+        ...messages.map((m) {
+              var content = m['content'] ?? '';
+              // 在对话历史中将旧名字替换为当前名字
+              if (_aiName != '知伴') {
+                content = content.replaceAll('知伴', _aiName);
+              }
+              return {
+                'role': m['role'],
+                'content': content,
+              };
             }).toList(),
       ],
       'stream': onStream != null,

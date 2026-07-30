@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
@@ -16,6 +17,35 @@ class SettingsPage extends StatefulWidget {
 }
 
 class _SettingsPageState extends State<SettingsPage> {
+  String _chatStyle = '自然';
+  bool _chatStyleLoaded = false;
+
+  final _chatStyles = ['自然', '简洁', '温柔', '幽默', '理性', '活泼'];
+
+  /// 加载保存的对话风格（仅加载一次）
+  Future<void> _loadChatStyleIfNeeded() async {
+    if (_chatStyleLoaded) return;
+    _chatStyleLoaded = true;
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user == null) return;
+    try {
+      final response = await Supabase.instance.client
+          .from('profiles')
+          .select('chat_style')
+          .eq('id', user.id)
+          .single();
+      final saved = response['chat_style'] as String?;
+      if (saved != null && saved.isNotEmpty && saved != _chatStyle) {
+        setState(() => _chatStyle = saved);
+        if (mounted) {
+          context.read<AiProvider>().setChatStyle(saved);
+        }
+      }
+    } catch (e) {
+      debugPrint('加载对话风格失败: $e');
+    }
+  }
+
   Future<void> _uploadAvatar() async {
     try {
       final picker = ImagePicker();
@@ -30,27 +60,63 @@ class _SettingsPageState extends State<SettingsPage> {
       final user = Supabase.instance.client.auth.currentUser;
       if (user == null) return;
 
+      setState(() {}); // 触发UI更新
+
       // 读取文件bytes
       final bytes = await image.readAsBytes();
       final fileExt = image.path.split('.').last.toLowerCase();
-      final fileName = '${user.id}/avatar.$fileExt';
+      final filePath = '${user.id}/avatar.$fileExt';
 
-      // 上传到 Supabase Storage
-      await Supabase.instance.client.storage
-          .from('avatars')
-          .uploadBinary(
-            fileName,
-            bytes,
-            fileOptions: FileOptions(
-              contentType: 'image/$fileExt',
-              upsert: true,
-            ),
-          );
+      // 尝试上传，如果桶不存在会报错
+      try {
+        await Supabase.instance.client.storage
+            .from('avatars')
+            .uploadBinary(
+              filePath,
+              bytes,
+              fileOptions: FileOptions(
+                contentType: 'image/$fileExt',
+                upsert: true,
+              ),
+            );
+      } catch (uploadError) {
+        // 如果桶不存在，尝试创建
+        debugPrint('上传失败，尝试创建桶: $uploadError');
+        try {
+          await Supabase.instance.client.storage.createBucket('avatars');
+          await Supabase.instance.client.storage
+              .from('avatars')
+              .uploadBinary(
+                filePath,
+                bytes,
+                fileOptions: FileOptions(
+                  contentType: 'image/$fileExt',
+                  upsert: true,
+                ),
+              );
+        } catch (e2) {
+          debugPrint('创建桶也失败: $e2');
+          // 降级方案：用 base64 存到 profiles 表
+          final base64Image = 'data:image/$fileExt;base64,${base64Encode(bytes)}';
+          await Supabase.instance.client
+              .from('profiles')
+              .update({'avatar_url': base64Image})
+              .eq('id', user.id);
+
+          if (mounted) {
+            context.read<AuthProvider>().updateProfile(avatarUrl: base64Image);
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('头像更新成功'), duration: Duration(seconds: 2)),
+            );
+          }
+          return;
+        }
+      }
 
       // 获取公开URL
       final publicUrl = Supabase.instance.client.storage
           .from('avatars')
-          .getPublicUrl(fileName);
+          .getPublicUrl(filePath);
 
       // 更新 profiles 表
       await Supabase.instance.client
@@ -79,6 +145,7 @@ class _SettingsPageState extends State<SettingsPage> {
   Widget build(BuildContext context) {
     final auth = Provider.of<AuthProvider>(context);
     final profile = auth.profile;
+    _loadChatStyleIfNeeded();
 
     return Scaffold(
       backgroundColor: AppColors.bg,
@@ -95,12 +162,14 @@ class _SettingsPageState extends State<SettingsPage> {
           const SizedBox(height: 24),
           _buildLogoutButton(auth),
           const SizedBox(height: 16),
-          const Center(
-            child: Text(
-              '知伴 v0.1',
-              style: TextStyle(
-                fontSize: 11,
-                color: AppColors.textTertiary,
+          Center(
+            child: Consumer<AiProvider>(
+              builder: (context, aiProvider, _) => Text(
+                '${aiProvider.aiName} v0.1',
+                style: const TextStyle(
+                  fontSize: 11,
+                  color: AppColors.textTertiary,
+                ),
               ),
             ),
           ),
@@ -170,16 +239,31 @@ class _SettingsPageState extends State<SettingsPage> {
           ),
           _buildDivider(),
           _buildSettingRow(
-            title: '生日',
+            title: '生日（阳历）',
             subtitle: profile?.birthday != null
-                ? '${profile!.birthday!.year}年${profile.birthday!.month}月'
-                : '未设置',
+                ? '${profile!.birthday!.year}年${profile.birthday!.month}月${profile.birthday!.day}日'
+                : '未设置（可在聊天中告诉AI）',
             onTap: () async {
               final picked = await showDatePicker(
                 context: context,
-                initialDate: profile?.birthday ?? DateTime(1990, 1, 1),
+                initialDate: profile?.birthday ?? DateTime(1995, 1, 1),
                 firstDate: DateTime(1950),
                 lastDate: DateTime.now(),
+                locale: const Locale('zh', 'CN'),
+                builder: (context, child) => Theme(
+                  data: Theme.of(context).copyWith(
+                    colorScheme: const ColorScheme.light(
+                      primary: AppColors.primary,
+                      onPrimary: Colors.white,
+                      surface: AppColors.surface,
+                      onSurface: AppColors.textPrimary,
+                    ),
+                    textButtonTheme: TextButtonThemeData(
+                      style: TextButton.styleFrom(foregroundColor: AppColors.primary),
+                    ),
+                  ),
+                  child: child!,
+                ),
               );
               if (picked != null) {
                 await context.read<AuthProvider>().updateProfile(
@@ -253,6 +337,12 @@ class _SettingsPageState extends State<SettingsPage> {
             children: [
               _buildSectionTitle('${aiProvider.aiName}偏好'),
               _buildSettingRow(
+                title: '${aiProvider.aiName}的头像',
+                trailing: _buildAiAvatarWidget(aiProvider),
+                onTap: _uploadAiAvatar,
+              ),
+              _buildDivider(),
+              _buildSettingRow(
                 title: '${aiProvider.aiName}的名字',
                 subtitle: aiProvider.aiName,
                 onTap: () => _showEditDialog(
@@ -300,12 +390,8 @@ class _SettingsPageState extends State<SettingsPage> {
               _buildDivider(),
               _buildSettingRow(
                 title: '对话风格',
-                subtitle: '简洁',
-                onTap: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('偏好设置开发中')),
-                  );
-                },
+                subtitle: _chatStyle,
+                onTap: () => _showChatStylePicker(aiProvider),
               ),
             ],
           ),
@@ -337,6 +423,205 @@ class _SettingsPageState extends State<SettingsPage> {
           .eq('id', user.id);
     } catch (e) {
       debugPrint('保存用户昵称失败: $e');
+    }
+  }
+
+  Future<void> _uploadAiAvatar() async {
+    try {
+      final picker = ImagePicker();
+      final XFile? image = await picker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 512,
+        maxHeight: 512,
+        imageQuality: 80,
+      );
+      if (image == null) return;
+
+      final user = Supabase.instance.client.auth.currentUser;
+      if (user == null) return;
+
+      final bytes = await image.readAsBytes();
+      final fileExt = image.path.split('.').last.toLowerCase();
+      final filePath = '${user.id}/ai_avatar.$fileExt';
+
+      String? avatarUrl;
+      try {
+        await Supabase.instance.client.storage
+            .from('avatars')
+            .uploadBinary(
+              filePath,
+              bytes,
+              fileOptions: FileOptions(
+                contentType: 'image/$fileExt',
+                upsert: true,
+              ),
+            );
+        avatarUrl = Supabase.instance.client.storage
+            .from('avatars')
+            .getPublicUrl(filePath);
+      } catch (uploadError) {
+        // 降级：base64
+        debugPrint('上传到存储失败，使用 base64: $uploadError');
+        avatarUrl = 'data:image/$fileExt;base64,${base64Encode(bytes)}';
+      }
+
+      // 通过 AuthProvider 更新（同时写入数据库 + 刷新本地 profile）
+      await context.read<AuthProvider>().updateProfile(aiAvatarUrl: avatarUrl);
+
+      if (mounted) {
+        setState(() {}); // 触发 UI 刷新
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('AI头像更新成功'), duration: Duration(seconds: 2)),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('上传失败: $e'), duration: Duration(seconds: 3)),
+        );
+      }
+    }
+  }
+
+  Widget _buildAiAvatarWidget(AiProvider aiProvider) {
+    final auth = context.read<AuthProvider>();
+    final avatarUrl = auth.profile?.aiAvatarUrl;
+
+    if (avatarUrl != null && avatarUrl.isNotEmpty) {
+      return ClipOval(
+        child: Image.network(
+          avatarUrl,
+          width: 32,
+          height: 32,
+          fit: BoxFit.cover,
+          errorBuilder: (context, error, stackTrace) => _buildDefaultAiAvatar(),
+        ),
+      );
+    }
+    return _buildDefaultAiAvatar();
+  }
+
+  Widget _buildDefaultAiAvatar() {
+    return Container(
+      width: 32,
+      height: 32,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        gradient: LinearGradient(
+          colors: [AppColors.primary, AppColors.primaryLight],
+        ),
+      ),
+      child: const Icon(Icons.smart_toy_outlined, color: Colors.white, size: 16),
+    );
+  }
+
+  Future<void> _showChatStylePicker(AiProvider aiProvider) async {
+    final result = await showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (context) => Container(
+        decoration: const BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: AppColors.borderLight,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                const Text(
+                  '选择对话风格',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+                const Spacer(),
+                GestureDetector(
+                  onTap: () => Navigator.pop(context),
+                  child: Container(
+                    width: 30,
+                    height: 30,
+                    decoration: BoxDecoration(
+                      color: AppColors.bg,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(Icons.close, size: 16, color: AppColors.textTertiary),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Wrap(
+              spacing: 10,
+              runSpacing: 10,
+              children: _chatStyles.map((style) {
+                final isSelected = style == _chatStyle;
+                return GestureDetector(
+                  onTap: () => Navigator.pop(context, style),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                    decoration: BoxDecoration(
+                      color: isSelected ? AppColors.primary.withOpacity(0.1) : AppColors.bg,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: isSelected ? AppColors.primary : AppColors.borderLight,
+                        width: isSelected ? 1.5 : 1,
+                      ),
+                    ),
+                    child: Text(
+                      style,
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                        color: isSelected ? AppColors.primary : AppColors.textSecondary,
+                      ),
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'AI 会根据你选择的风格来回复消息',
+              style: const TextStyle(fontSize: 12, color: AppColors.textTertiary),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (result != null && result != _chatStyle) {
+      setState(() => _chatStyle = result);
+      // 同步到 AiProvider -> AiService
+      aiProvider.setChatStyle(result);
+      // 保存到数据库
+      final user = Provider.of<AuthProvider>(context, listen: false).user;
+      if (user != null) {
+        try {
+          await Supabase.instance.client
+              .from('profiles')
+              .update({'chat_style': result})
+              .eq('id', user.id);
+        } catch (e) {
+          debugPrint('保存对话风格失败: $e');
+        }
+      }
     }
   }
 
