@@ -229,7 +229,6 @@ class AgentService {
         message: '成功生成 Timeline 事件: ${savedEvent.title}',
         requestData: {
           'message_id': messageId,
-          'fact_count': facts.length,
         },
         responseData: {
           'title': savedEvent.title,
