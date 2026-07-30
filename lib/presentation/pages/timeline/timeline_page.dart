@@ -1170,7 +1170,7 @@ class _TimelinePageState extends State<TimelinePage> {
                                 icon: const Icon(Icons.delete_outline, size: 18, color: Colors.red),
                                 label: const Text('删除', style: TextStyle(color: Colors.red)),
                                 style: OutlinedButton.styleFrom(
-                                  side: const BorderSide(color: Colors.red.withOpacity(0.5)),
+                                  side: BorderSide(color: Colors.red.withOpacity(0.5)),
                                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                                   padding: const EdgeInsets.symmetric(vertical: 12),
                                 ),
