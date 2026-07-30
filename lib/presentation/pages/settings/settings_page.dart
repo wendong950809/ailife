@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/theme/app_theme.dart';
@@ -15,6 +16,65 @@ class SettingsPage extends StatefulWidget {
 }
 
 class _SettingsPageState extends State<SettingsPage> {
+  Future<void> _uploadAvatar() async {
+    try {
+      final picker = ImagePicker();
+      final XFile? image = await picker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 512,
+        maxHeight: 512,
+        imageQuality: 80,
+      );
+      if (image == null) return;
+
+      final user = Supabase.instance.client.auth.currentUser;
+      if (user == null) return;
+
+      // 读取文件bytes
+      final bytes = await image.readAsBytes();
+      final fileExt = image.path.split('.').last.toLowerCase();
+      final fileName = '${user.id}/avatar.$fileExt';
+
+      // 上传到 Supabase Storage
+      await Supabase.instance.client.storage
+          .from('avatars')
+          .uploadBinary(
+            fileName,
+            bytes,
+            fileOptions: FileOptions(
+              contentType: 'image/$fileExt',
+              upsert: true,
+            ),
+          );
+
+      // 获取公开URL
+      final publicUrl = Supabase.instance.client.storage
+          .from('avatars')
+          .getPublicUrl(fileName);
+
+      // 更新 profiles 表
+      await Supabase.instance.client
+          .from('profiles')
+          .update({'avatar_url': publicUrl})
+          .eq('id', user.id);
+
+      // 更新 AuthProvider
+      if (mounted) {
+        context.read<AuthProvider>().updateProfile(avatarUrl: publicUrl);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('头像更新成功'), duration: Duration(seconds: 2)),
+        );
+      }
+    } catch (e) {
+      debugPrint('头像上传失败: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('上传失败: $e'), duration: Duration(seconds: 3)),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final auth = Provider.of<AuthProvider>(context);
@@ -92,11 +152,7 @@ class _SettingsPageState extends State<SettingsPage> {
           _buildSettingRow(
             title: '头像',
             trailing: _buildAvatar(profile),
-            onTap: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('头像上传功能开发中')),
-              );
-            },
+            onTap: _uploadAvatar,
           ),
           _buildDivider(),
           _buildSettingRow(
@@ -146,6 +202,23 @@ class _SettingsPageState extends State<SettingsPage> {
             ? email![0].toUpperCase()
             : '?');
 
+    // 如果有头像URL，显示网络图片
+    final avatarUrl = profile?.avatarUrl;
+    if (avatarUrl != null && avatarUrl.isNotEmpty) {
+      return ClipOval(
+        child: Image.network(
+          avatarUrl,
+          width: 32,
+          height: 32,
+          fit: BoxFit.cover,
+          errorBuilder: (context, error, stackTrace) => _buildDefaultAvatar(displayChar),
+        ),
+      );
+    }
+    return _buildDefaultAvatar(displayChar);
+  }
+
+  Widget _buildDefaultAvatar(String displayChar) {
     return Container(
       width: 32,
       height: 32,

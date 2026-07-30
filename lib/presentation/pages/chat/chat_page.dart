@@ -893,7 +893,7 @@ class _ChatPageState extends State<ChatPage> {
 
     return ListView.builder(
       controller: _scrollController,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       itemCount: displayItems.length,
       itemBuilder: (context, index) {
         final item = displayItems[index];
@@ -945,7 +945,7 @@ class _ChatPageState extends State<ChatPage> {
   /// 搜索栏
   Widget _buildSearchBar() {
     return Container(
-      padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+      padding: const EdgeInsets.fromLTRB(12, 4, 12, 6),
       color: AppColors.bg,
       child: Container(
         decoration: BoxDecoration(
@@ -1131,7 +1131,7 @@ class _ChatPageState extends State<ChatPage> {
     return Consumer<AiProvider>(
       builder: (context, aiProvider, child) {
         return Container(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+          padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
           color: AppColors.bg,
           child: Row(
             children: [
@@ -1153,7 +1153,7 @@ class _ChatPageState extends State<ChatPage> {
                     Text(
                       aiProvider.userNickname.isNotEmpty
                           ? '你的${aiProvider.aiName}，随时在身边'
-                          : '你的知伴，随时在身边',
+                          : '你的${aiProvider.aiName}，随时在身边',
                       style: TextStyle(
                         fontSize: 12,
                         color: AppColors.textTertiary,
@@ -1320,7 +1320,7 @@ class _ChatPageState extends State<ChatPage> {
     bool isGenerating = false,
   }) {
     return Container(
-      margin: const EdgeInsets.symmetric(vertical: 8),
+      margin: const EdgeInsets.symmetric(vertical: 5),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -1331,7 +1331,7 @@ class _ChatPageState extends State<ChatPage> {
             ),
           Expanded(
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
               decoration: BoxDecoration(
                 color: isUser ? AppColors.primary : AppColors.surface,
                 borderRadius: BorderRadius.only(
@@ -1447,7 +1447,7 @@ class _ChatPageState extends State<ChatPage> {
 
   Widget _buildInputBar() {
     return Container(
-      padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
+      padding: const EdgeInsets.fromLTRB(8, 6, 8, 8),
       color: AppColors.bg,
       child: Column(
         children: [
@@ -1498,26 +1498,26 @@ class _ChatPageState extends State<ChatPage> {
               GestureDetector(
                 onTap: _pickImage,
                 child: Container(
-                  width: 44,
-                  height: 44,
+                  width: 38,
+                  height: 38,
                   decoration: BoxDecoration(
                     color: AppColors.surface,
-                    borderRadius: BorderRadius.circular(22),
+                    borderRadius: BorderRadius.circular(19),
                     border: Border.all(color: AppColors.borderLight),
                   ),
                   child: Icon(Icons.image_outlined, color: AppColors.textSecondary, size: 22),
                 ),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 6),
               GestureDetector(
                 onLongPress: _toggleRecording,
                 onTap: _toggleRecording,
                 child: Container(
-                  width: 44,
-                  height: 44,
+                  width: 38,
+                  height: 38,
                   decoration: BoxDecoration(
                     color: _isRecording ? AppColors.stateError : AppColors.surface,
-                    borderRadius: BorderRadius.circular(22),
+                    borderRadius: BorderRadius.circular(19),
                     border: Border.all(color: _isRecording ? Colors.transparent : AppColors.borderLight),
                     boxShadow: _isRecording ? [BoxShadow(color: AppColors.stateError.withOpacity(0.3), blurRadius: 6)] : [],
                   ),
@@ -1528,10 +1528,10 @@ class _ChatPageState extends State<ChatPage> {
                   ),
                 ),
               ),
-              const SizedBox(width: 10),
+              const SizedBox(width: 6),
               Expanded(
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                   decoration: BoxDecoration(
                     color: AppColors.surface,
                     borderRadius: BorderRadius.circular(24),
@@ -1552,13 +1552,13 @@ class _ChatPageState extends State<ChatPage> {
                   ),
                 ),
               ),
-              const SizedBox(width: 10),
+              const SizedBox(width: 6),
               Container(
-                width: 48,
-                height: 48,
+                width: 40,
+                height: 40,
                 decoration: BoxDecoration(
                   color: AppColors.primary,
-                  borderRadius: BorderRadius.circular(24),
+                  borderRadius: BorderRadius.circular(20),
                   boxShadow: [BoxShadow(color: AppColors.primary.withOpacity(0.3), blurRadius: 8, offset: const Offset(0, 2))],
                 ),
                 child: IconButton(

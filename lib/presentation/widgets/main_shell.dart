@@ -50,7 +50,7 @@ class _MainShellState extends State<MainShell> {
                 _buildTabItem(
                   index: 1,
                   icon: Icons.timeline,
-                  label: '时间',
+                  label: '时光印记',
                 ),
                 Consumer<AiProvider>(
                   builder: (context, aiProvider, child) => _buildTabItem(

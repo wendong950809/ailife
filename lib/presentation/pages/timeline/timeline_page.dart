@@ -9,7 +9,7 @@ import '../../../data/models/timeline_event.dart';
 // 页面名称配置（可在此统一修改）
 // ============================================
 // 备选：记忆长廊 | 时光印记 | 我的足迹 | 岁月笔记 | 人生编年史 | 心境录
-const String _kPageTitle = '记忆长廊';
+const String _kPageTitle = '时光印记';
 const String _kSearchHint = '搜索记忆...';
 const String _kEmptyTitle = '这里还是一片空白';
 const String _kEmptySubtitle = '去聊聊天，\n生活的点滴会自动流淌到这里';
@@ -222,6 +222,13 @@ class _TimelinePageState extends State<TimelinePage> {
     final titleController = TextEditingController(text: event.title);
     final summaryController = TextEditingController(text: event.summary);
     DateTime? pickedDate = event.occurredAt;
+    String selectedIcon = event.icon ?? '📝';
+
+    final commonIcons = [
+      '📝', '💡', '🌟', '❤️', '🎉', '🏆', '🏠', '💼',
+      '🍽️', '☕', '🎵', '📚', '✈️', '💪', '🌱', '🌈',
+      '📷', '🎁', '🔥', '🌙', '☀️', '⚡', '🎯', '😊',
+    ];
 
     final result = await showModalBottomSheet<bool>(
       context: context,
@@ -238,139 +245,192 @@ class _TimelinePageState extends State<TimelinePage> {
                 color: AppColors.surface,
                 borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
               ),
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // 拖拽指示条
-                  Center(
-                    child: Container(
-                      width: 40, height: 4,
-                      decoration: BoxDecoration(
-                        color: AppColors.borderLight,
-                        borderRadius: BorderRadius.circular(2),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  const Text('编辑记忆', style: TextStyle(
-                    fontSize: 18, fontWeight: FontWeight.w700, color: AppColors.textPrimary,
-                  )),
-                  const SizedBox(height: 16),
-                  TextField(
-                    controller: titleController,
-                    decoration: _inputDecoration('标题'),
-                    style: const TextStyle(fontSize: 15, color: AppColors.textPrimary),
-                  ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: summaryController,
-                    decoration: _inputDecoration('摘要').copyWith(
-                      alignLabelWithHint: true,
-                    ),
-                    style: const TextStyle(fontSize: 14, color: AppColors.textSecondary, height: 1.5),
-                    maxLines: 4,
-                    minLines: 2,
-                  ),
-                  const SizedBox(height: 12),
-                  GestureDetector(
-                    onTap: () async {
-                      final date = await showDatePicker(
-                        context: context,
-                        initialDate: pickedDate ?? DateTime.now(),
-                        firstDate: DateTime(1900),
-                        lastDate: DateTime.now().add(const Duration(days: 365)),
-                        builder: (context, child) => Theme(
-                          data: Theme.of(context).copyWith(
-                            colorScheme: const ColorScheme.light(
-                              primary: AppColors.primary,
-                              onPrimary: Colors.white,
-                              surface: AppColors.surface,
-                            ),
-                          ),
-                          child: child!,
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // 拖拽指示条
+                    Center(
+                      child: Container(
+                        width: 40, height: 4,
+                        decoration: BoxDecoration(
+                          color: AppColors.borderLight,
+                          borderRadius: BorderRadius.circular(2),
                         ),
-                      );
-                      if (date != null) {
-                        setModalState(() => pickedDate = date);
-                      }
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                      decoration: BoxDecoration(
-                        color: AppColors.bg,
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: AppColors.borderLight),
-                      ),
-                      child: Row(
-                        children: [
-                          const Icon(Icons.calendar_today, size: 16, color: AppColors.textTertiary),
-                          const SizedBox(width: 8),
-                          Text(
-                            pickedDate != null
-                                ? DateFormat('yyyy年M月d日', 'zh_CN').format(pickedDate!)
-                                : '选择日期',
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: pickedDate != null ? AppColors.textPrimary : AppColors.textTertiary,
-                            ),
-                          ),
-                        ],
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 24),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 48,
-                    child: ElevatedButton(
-                      onPressed: () async {
-                        try {
-                          await _supabase.from('timeline').update({
-                            'title': titleController.text.trim(),
-                            'summary': summaryController.text.trim(),
-                            'occurred_at': pickedDate?.toIso8601String(),
-                          }).eq('id', event.id!);
-                          if (mounted) {
-                            final idx = _events.indexWhere((e) => e.id == event.id);
-                            if (idx != -1) {
-                              setState(() {
-                                _events[idx] = event.copyWith(
-                                  title: titleController.text.trim(),
-                                  summary: summaryController.text.trim(),
-                                  occurredAt: pickedDate,
-                                );
-                                // 重新按时间排序
-                                _events.sort((a, b) {
-                                  final da = a.occurredAt ?? DateTime(1900);
-                                  final db = b.occurredAt ?? DateTime(1900);
-                                  return da.compareTo(db);
-                                });
-                              });
-                            }
-                            Navigator.pop(context, true);
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('已保存'), duration: Duration(seconds: 2)),
-                            );
-                          }
-                        } catch (e) {
-                          debugPrint('保存失败: $e');
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('保存失败')),
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        Text('重温这段时光', style: const TextStyle(
+                          fontSize: 18, fontWeight: FontWeight.w700, color: AppColors.textPrimary,
+                        )),
+                        const Spacer(),
+                        GestureDetector(
+                          onTap: () => Navigator.pop(context),
+                          child: Container(
+                            width: 30, height: 30,
+                            decoration: BoxDecoration(
+                              color: AppColors.bg,
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: const Icon(Icons.close, size: 16, color: AppColors.textTertiary),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    // 图标选择
+                    Text('选择图标', style: TextStyle(fontSize: 12, color: AppColors.textTertiary)),
+                    const SizedBox(height: 8),
+                    SizedBox(
+                      height: 44,
+                      child: ListView.separated(
+                        scrollDirection: Axis.horizontal,
+                        itemCount: commonIcons.length,
+                        separatorBuilder: (_, __) => const SizedBox(width: 6),
+                        itemBuilder: (context, index) {
+                          final emoji = commonIcons[index];
+                          final isSelected = emoji == selectedIcon;
+                          return GestureDetector(
+                            onTap: () => setModalState(() => selectedIcon = emoji),
+                            child: Container(
+                              width: 44, height: 44,
+                              decoration: BoxDecoration(
+                                color: isSelected ? AppColors.primary.withOpacity(0.1) : AppColors.bg,
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: isSelected ? AppColors.primary : AppColors.borderLight,
+                                  width: isSelected ? 1.5 : 1,
+                                ),
+                              ),
+                              child: Center(
+                                child: Text(emoji, style: const TextStyle(fontSize: 20)),
+                              ),
+                            ),
                           );
+                        },
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: titleController,
+                      decoration: _inputDecoration('标题'),
+                      style: const TextStyle(fontSize: 15, color: AppColors.textPrimary),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: summaryController,
+                      decoration: _inputDecoration('摘要').copyWith(
+                        alignLabelWithHint: true,
+                      ),
+                      style: const TextStyle(fontSize: 14, color: AppColors.textSecondary, height: 1.5),
+                      maxLines: 4,
+                      minLines: 2,
+                    ),
+                    const SizedBox(height: 12),
+                    GestureDetector(
+                      onTap: () async {
+                        final date = await showDatePicker(
+                          context: context,
+                          initialDate: pickedDate ?? DateTime.now(),
+                          firstDate: DateTime(1900),
+                          lastDate: DateTime.now().add(const Duration(days: 365)),
+                          builder: (context, child) => Theme(
+                            data: Theme.of(context).copyWith(
+                              colorScheme: const ColorScheme.light(
+                                primary: AppColors.primary,
+                                onPrimary: Colors.white,
+                                surface: AppColors.surface,
+                              ),
+                            ),
+                            child: child!,
+                          ),
+                        );
+                        if (date != null) {
+                          setModalState(() => pickedDate = date);
                         }
                       },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primary,
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        elevation: 0,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                        decoration: BoxDecoration(
+                          color: AppColors.bg,
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: AppColors.borderLight),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.calendar_today, size: 16, color: AppColors.textTertiary),
+                            const SizedBox(width: 8),
+                            Text(
+                              pickedDate != null
+                                  ? DateFormat('yyyy年M月d日', 'zh_CN').format(pickedDate!)
+                                  : '选择日期',
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: pickedDate != null ? AppColors.textPrimary : AppColors.textTertiary,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                      child: const Text('保存', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
                     ),
-                  ),
-                ],
+                    const SizedBox(height: 24),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 48,
+                      child: ElevatedButton(
+                        onPressed: () async {
+                          try {
+                            await _supabase.from('timeline').update({
+                              'title': titleController.text.trim(),
+                              'summary': summaryController.text.trim(),
+                              'occurred_at': pickedDate?.toIso8601String(),
+                              'icon': selectedIcon,
+                            }).eq('id', event.id!);
+                            if (mounted) {
+                              final idx = _events.indexWhere((e) => e.id == event.id);
+                              if (idx != -1) {
+                                setState(() {
+                                  _events[idx] = event.copyWith(
+                                    title: titleController.text.trim(),
+                                    summary: summaryController.text.trim(),
+                                    occurredAt: pickedDate,
+                                    icon: selectedIcon,
+                                  );
+                                  // 重新按时间排序
+                                  _events.sort((a, b) {
+                                    final da = a.occurredAt ?? DateTime(1900);
+                                    final db = b.occurredAt ?? DateTime(1900);
+                                    return da.compareTo(db);
+                                  });
+                                });
+                              }
+                              Navigator.pop(context, true);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('已保存'), duration: Duration(seconds: 2)),
+                              );
+                            }
+                          } catch (e) {
+                            debugPrint('保存失败: $e');
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('保存失败')),
+                            );
+                          }
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primary,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          elevation: 0,
+                        ),
+                        child: const Text('保存', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           );
@@ -449,7 +509,7 @@ class _TimelinePageState extends State<TimelinePage> {
                             color: AppColors.primary,
                             child: ListView.builder(
                               controller: _scrollController,
-                              padding: const EdgeInsets.fromLTRB(0, 0, 16, 96),
+                              padding: const EdgeInsets.fromLTRB(0, 0, 16, 72),
                               itemCount: _groupedEvents.length + 1, // +1 for "正在记录"
                               itemBuilder: (context, index) {
                                 if (index == _groupedEvents.length) {
@@ -576,7 +636,7 @@ class _TimelinePageState extends State<TimelinePage> {
         children: [
           // 日期标题
           Padding(
-            padding: const EdgeInsets.only(left: 44, bottom: 10),
+            padding: const EdgeInsets.only(left: 52, bottom: 10),
             child: Row(
               children: [
                 Container(
@@ -617,21 +677,38 @@ class _TimelinePageState extends State<TimelinePage> {
     );
   }
 
-  /// 带时间轴的事件卡片
+  /// 带时间轴的事件卡片（时间显示在时间轴上）
   Widget _buildEventCardWithTimeline(TimelineEvent event, bool isLastEvent) {
+    final timeStr = event.occurredAt != null
+        ? DateFormat('HH:mm', 'zh_CN').format(event.occurredAt!)
+        : '';
+
     return IntrinsicHeight(
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // 左侧时间轴
+          // 左侧时间轴（含时间文字）
           SizedBox(
-            width: 44,
+            width: 52,
             child: Stack(
               alignment: Alignment.topCenter,
               children: [
-                // 节点圆点（固定在顶部）
+                // 时间文字
+                if (timeStr.isNotEmpty)
+                  Positioned(
+                    top: 2,
+                    child: Text(
+                      timeStr,
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w500,
+                        color: AppColors.textTertiary,
+                      ),
+                    ),
+                  ),
+                // 节点圆点
                 Positioned(
-                  top: 18,
+                  top: 20,
                   child: Container(
                     width: 10,
                     height: 10,
@@ -649,10 +726,10 @@ class _TimelinePageState extends State<TimelinePage> {
                     ),
                   ),
                 ),
-                // 向下延伸的竖线（从圆点底部画到底部）
+                // 向下延伸的竖线
                 if (!isLastEvent)
                   Positioned(
-                    top: 32,
+                    top: 34,
                     bottom: 0,
                     child: Container(
                       width: 2,
@@ -761,8 +838,6 @@ class _TimelinePageState extends State<TimelinePage> {
                   ),
                 const SizedBox(width: 8),
                 _buildSourceChip(event.eventSource),
-                const Spacer(),
-                _buildPrecisionBadge(event.timePrecision),
               ],
             ),
           ],
@@ -797,7 +872,7 @@ class _TimelinePageState extends State<TimelinePage> {
               const SizedBox(height: 16),
               ListTile(
                 leading: const Icon(Icons.edit_outlined, color: AppColors.primary, size: 22),
-                title: const Text('编辑', style: TextStyle(fontSize: 15, color: AppColors.textPrimary)),
+                title: const Text('重温', style: TextStyle(fontSize: 15, color: AppColors.textPrimary)),
                 onTap: () {
                   Navigator.pop(context);
                   _editEvent(event);
@@ -881,74 +956,62 @@ class _TimelinePageState extends State<TimelinePage> {
 
   /// 底部"正在记录..."
   Widget _buildRecordingFooter() {
-    return IntrinsicHeight(
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          SizedBox(
-            width: 44,
-            child: Stack(
-              alignment: Alignment.topCenter,
-              children: [
-                Positioned(
-                  top: 18,
-                  child: Container(
-                    width: 10,
-                    height: 10,
-                    decoration: BoxDecoration(
-                      color: AppColors.primary.withOpacity(0.3),
-                      shape: BoxShape.circle,
-                      border: Border.all(color: AppColors.surface, width: 2),
-                    ),
-                  ),
-                ),
-                Positioned(
-                  top: 32,
-                  bottom: 0,
-                  child: Container(
-                    width: 2,
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [
-                          AppColors.primary.withOpacity(0.1),
-                          Colors.transparent,
-                        ],
-                      ),
-                      borderRadius: BorderRadius.circular(1),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Expanded(
-            child: Container(
-              margin: const EdgeInsets.only(bottom: 10, right: 4),
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                color: AppColors.surface,
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: AppColors.borderLight),
-              ),
-              child: Row(
+    return Padding(
+      padding: const EdgeInsets.only(top: 24),
+      child: IntrinsicHeight(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            SizedBox(
+              width: 52,
+              child: Stack(
+                alignment: Alignment.topCenter,
                 children: [
-                  _buildPulsingDot(),
-                  const SizedBox(width: 10),
-                  Text(
-                    '正在记录生活的点滴...',
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: AppColors.textTertiary,
-                      fontStyle: FontStyle.italic,
+                  Positioned(
+                    top: 20,
+                    child: Container(
+                      width: 10,
+                      height: 10,
+                      decoration: BoxDecoration(
+                        color: AppColors.primary.withOpacity(0.3),
+                        shape: BoxShape.circle,
+                        border: Border.all(color: AppColors.surface, width: 2),
+                      ),
                     ),
                   ),
                 ],
               ),
             ),
-          ),
-        ],
+            Expanded(
+              child: Container(
+                margin: const EdgeInsets.only(right: 4),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withOpacity(0.03),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: AppColors.primary.withOpacity(0.08)),
+                ),
+                child: Row(
+                  children: [
+                    _buildPulsingDot(),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        '生活正在书写中…',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: AppColors.textTertiary,
+                          fontStyle: FontStyle.italic,
+                          height: 1.5,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -1077,8 +1140,6 @@ class _TimelinePageState extends State<TimelinePage> {
                           Row(
                             children: [
                               _buildDetailItem('来源', _sourceLabel(event.eventSource)),
-                              const SizedBox(width: 32),
-                              _buildDetailItem('时间精度', _precisionLabel(event.timePrecision)),
                             ],
                           ),
                         ],
@@ -1152,7 +1213,7 @@ class _TimelinePageState extends State<TimelinePage> {
                                   _editEvent(event);
                                 },
                                 icon: const Icon(Icons.edit_outlined, size: 18, color: AppColors.primary),
-                                label: const Text('编辑', style: TextStyle(color: AppColors.primary)),
+                                label: const Text('重温', style: TextStyle(color: AppColors.primary)),
                                 style: OutlinedButton.styleFrom(
                                   side: const BorderSide(color: AppColors.primary),
                                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -1230,19 +1291,19 @@ class _TimelinePageState extends State<TimelinePage> {
   /// 骨架屏加载
   Widget _buildSkeletonLoading() {
     return ListView.builder(
-      padding: const EdgeInsets.fromLTRB(0, 0, 16, 96),
+      padding: const EdgeInsets.fromLTRB(0, 0, 16, 72),
       itemCount: 5,
       itemBuilder: (context, index) => IntrinsicHeight(
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             SizedBox(
-              width: 44,
+              width: 52,
               child: Stack(
                 alignment: Alignment.topCenter,
                 children: [
                   Positioned(
-                    top: 18,
+                    top: 20,
                     child: Container(
                       width: 10, height: 10,
                       decoration: BoxDecoration(
@@ -1253,7 +1314,7 @@ class _TimelinePageState extends State<TimelinePage> {
                   ),
                   if (index < 4)
                     Positioned(
-                      top: 32,
+                      top: 34,
                       bottom: 0,
                       child: Container(
                         width: 2,
