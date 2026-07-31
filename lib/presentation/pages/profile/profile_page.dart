@@ -270,7 +270,7 @@ class _ProfilePageState extends State<ProfilePage> {
       LifeItem(
         title: '价值观',
         subtitle: '${_dimensions['values']}条核心价值观',
-        icon: Icons.favorite_outline,
+        icon: Icons.favorite,
       ),
     ];
 
@@ -439,7 +439,7 @@ class _ProfilePageState extends State<ProfilePage> {
         child: Row(
           children: [
             Icon(
-              Icons.settings_outlined,
+              Icons.settings,
               size: 18,
               color: AppColors.textSecondary,
             ),

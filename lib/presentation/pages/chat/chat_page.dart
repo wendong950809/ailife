@@ -823,7 +823,7 @@ class _ChatPageState extends State<ChatPage> {
                       color: AppColors.stateError.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    child: const Icon(Icons.delete_outline, color: AppColors.stateError, size: 20),
+                    child: const Icon(Icons.delete, color: AppColors.stateError, size: 20),
                   ),
                   const SizedBox(width: 12),
                   const Text(
@@ -909,7 +909,7 @@ class _ChatPageState extends State<ChatPage> {
       padding: const EdgeInsets.only(top: 4),
       child: Row(
         children: [
-          Icon(Icons.check_circle_outline, size: 14, color: AppColors.textTertiary),
+          Icon(Icons.check_circle, size: 14, color: AppColors.textTertiary),
           const SizedBox(width: 6),
           Text(text, style: TextStyle(fontSize: 12, color: AppColors.textTertiary)),
         ],
@@ -1533,7 +1533,7 @@ class _ChatPageState extends State<ChatPage> {
                 borderRadius: BorderRadius.circular(10),
                 border: Border.all(color: AppColors.borderLight),
               ),
-              child: Icon(Icons.settings_outlined, color: AppColors.textSecondary, size: 20),
+              child: Icon(Icons.settings, color: AppColors.textSecondary, size: 20),
             ),
           ),
         ],
@@ -1626,7 +1626,7 @@ class _ChatPageState extends State<ChatPage> {
           end: Alignment.bottomRight,
         ),
       ),
-      child: const Icon(Icons.chat_bubble_outline, color: Colors.white, size: 20),
+      child: const Icon(Icons.chat_bubble, color: Colors.white, size: 20),
     );
   }
 
