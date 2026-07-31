@@ -1377,7 +1377,7 @@ class _ChatPageState extends State<ChatPage> {
                 Row(
                   children: [
                     Icon(
-                      isUser ? Icons.person : Icons.smart_toy_outlined,
+                      isUser ? Icons.person : Icons.smart_toy,
                       size: 14,
                       color: isUser ? AppColors.primary : AppColors.textSecondary,
                     ),
@@ -1954,7 +1954,7 @@ class _ChatPageState extends State<ChatPage> {
                     shape: BoxShape.circle,
                     border: Border.all(color: AppColors.borderLight),
                   ),
-                  child: const Icon(Icons.image_outlined, color: AppColors.textTertiary, size: 18),
+                  child: const Icon(Icons.image, color: AppColors.textTertiary, size: 18),
                 ),
               ),
               const SizedBox(width: 8),

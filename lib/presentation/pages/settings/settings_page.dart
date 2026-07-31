@@ -97,7 +97,7 @@ class _SettingsPageState extends State<SettingsPage> {
           Center(
             child: Consumer<AiProvider>(
               builder: (context, aiProvider, _) => Text(
-                '${aiProvider.aiName} v0.4.4',
+                '${aiProvider.aiName} v0.4.5',
                 style: const TextStyle(
                   fontSize: 11,
                   color: AppColors.textTertiary,
@@ -426,7 +426,7 @@ class _SettingsPageState extends State<SettingsPage> {
           colors: [AppColors.primary, AppColors.primaryLight],
         ),
       ),
-      child: const Icon(Icons.smart_toy_outlined, color: Colors.white, size: 16),
+      child: const Icon(Icons.smart_toy, color: Colors.white, size: 16),
     );
   }
 
