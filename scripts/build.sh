@@ -36,6 +36,7 @@ flutter build web --release \
   --dart-define=SUPABASE_URL="$SUPABASE_URL" \
   --dart-define=SUPABASE_ANON_KEY="$SUPABASE_ANON_KEY" \
   --dart-define=DEEPSEEK_API_KEY="$DEEPSEEK_API_KEY" \
-  --dart-define=OPENAI_API_KEY="$OPENAI_API_KEY"
+  --dart-define=OPENAI_API_KEY="$OPENAI_API_KEY" \
+  --dart-define=ZHIPU_API_KEY="$ZHIPU_API_KEY"
 
 echo ">> Build 完成！"

@@ -4,7 +4,7 @@ import '../data/services/ai_service.dart';
 class AiProvider extends ChangeNotifier {
   final AiService _aiService;
 
-  AiModel _currentModel = AiModel.deepseekChat;
+  AiModel _currentModel = AiModel.glm4Flash; // 默认用免费的智谱
   bool _isLoading = false;
   String? _errorMessage;
   String _aiName = '知伴';

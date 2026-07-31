@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../data/models/user_profile.dart';
+import '../../../data/services/ai_service.dart';
 import '../../../providers/auth_provider.dart';
 import '../../../providers/ai_provider.dart';
 
@@ -165,7 +166,7 @@ class _SettingsPageState extends State<SettingsPage> {
           Center(
             child: Consumer<AiProvider>(
               builder: (context, aiProvider, _) => Text(
-                '${aiProvider.aiName} v0.1',
+                '${aiProvider.aiName} v0.3',
                 style: const TextStyle(
                   fontSize: 11,
                   color: AppColors.textTertiary,
@@ -392,6 +393,12 @@ class _SettingsPageState extends State<SettingsPage> {
                 title: '对话风格',
                 subtitle: _chatStyle,
                 onTap: () => _showChatStylePicker(aiProvider),
+              ),
+              _buildDivider(),
+              _buildSettingRow(
+                title: 'AI模型',
+                subtitle: '${aiProvider.currentModel.name}（${aiProvider.currentModel.description}）',
+                onTap: () => _showModelPicker(aiProvider),
               ),
             ],
           ),
@@ -620,6 +627,94 @@ class _SettingsPageState extends State<SettingsPage> {
               .eq('id', user.id);
         } catch (e) {
           debugPrint('保存对话风格失败: $e');
+        }
+      }
+    }
+  }
+
+  Future<void> _showModelPicker(AiProvider aiProvider) async {
+    final result = await showModalBottomSheet<AiModel>(
+      context: context,
+      backgroundColor: AppColors.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40, height: 4,
+                  decoration: BoxDecoration(
+                    color: AppColors.borderLight,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              const Text('选择AI模型', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700, color: AppColors.textPrimary)),
+              const SizedBox(height: 16),
+              ...AiModel.values.map((model) {
+                final isSelected = model == aiProvider.currentModel;
+                return GestureDetector(
+                  onTap: () => Navigator.pop(context, model),
+                  child: Container(
+                    margin: const EdgeInsets.only(bottom: 8),
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: isSelected ? AppColors.primary.withOpacity(0.06) : AppColors.bg,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: isSelected ? AppColors.primary : AppColors.borderLight,
+                        width: isSelected ? 1.5 : 1,
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(model.name, style: TextStyle(
+                                fontSize: 15, fontWeight: FontWeight.w600,
+                                color: isSelected ? AppColors.primary : AppColors.textPrimary,
+                              )),
+                              const SizedBox(height: 2),
+                              Text(model.description, style: TextStyle(
+                                fontSize: 12, color: AppColors.textTertiary,
+                              )),
+                            ],
+                          ),
+                        ),
+                        if (isSelected)
+                          Icon(Icons.check_circle, color: AppColors.primary, size: 20),
+                      ],
+                    ),
+                  ),
+                );
+              }).toList(),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    if (result != null && result != aiProvider.currentModel) {
+      aiProvider.setModel(result);
+      // 保存到数据库
+      final user = Provider.of<AuthProvider>(context, listen: false).user;
+      if (user != null) {
+        try {
+          await Supabase.instance.client
+              .from('profiles')
+              .update({'ai_model': result.name})
+              .eq('id', user.id);
+        } catch (e) {
+          debugPrint('保存AI模型选择失败: $e');
         }
       }
     }

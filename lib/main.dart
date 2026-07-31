@@ -18,6 +18,7 @@ import 'data/services/ai_service.dart';
 class AppConfig {
   static String deepseekKey = '';
   static String openaiKey = '';
+  static String zhipuKey = '';
 }
 
 void main() async {
@@ -34,6 +35,7 @@ void main() async {
     var supabaseAnonKey = const String.fromEnvironment('SUPABASE_ANON_KEY', defaultValue: '');
     AppConfig.deepseekKey = const String.fromEnvironment('DEEPSEEK_API_KEY', defaultValue: '');
     AppConfig.openaiKey = const String.fromEnvironment('OPENAI_API_KEY', defaultValue: '');
+    AppConfig.zhipuKey = const String.fromEnvironment('ZHIPU_API_KEY', defaultValue: '');
 
     // 本地开发 fallback:加载 .env
     if (supabaseUrl.isEmpty) {
@@ -43,6 +45,7 @@ void main() async {
       supabaseAnonKey = dotenv.env['SUPABASE_ANON_KEY'] ?? '';
       AppConfig.deepseekKey = dotenv.env['DEEPSEEK_API_KEY'] ?? '';
       AppConfig.openaiKey = dotenv.env['OPENAI_API_KEY'] ?? '';
+      AppConfig.zhipuKey = dotenv.env['ZHIPU_API_KEY'] ?? '';
     }
 
     print('SUPABASE_URL: ${supabaseUrl.isNotEmpty ? '已配置' : '未配置'}');
@@ -130,6 +133,7 @@ class AiLifeApp extends StatelessWidget {
             aiService: AiService(
               deepseekKey: AppConfig.deepseekKey,
               openaiKey: AppConfig.openaiKey,
+              zhipuKey: AppConfig.zhipuKey,
             ),
           ),
         ),

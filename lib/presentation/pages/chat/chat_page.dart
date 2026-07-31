@@ -101,7 +101,7 @@ class _ChatPageState extends State<ChatPage> {
     try {
       final response = await Supabase.instance.client
           .from('profiles')
-          .select('ai_name, ai_avatar_url, nickname, chat_style')
+          .select('ai_name, ai_avatar_url, nickname, chat_style, ai_model')
           .eq('id', user.id)
           .single();
 
@@ -115,6 +115,19 @@ class _ChatPageState extends State<ChatPage> {
         context.read<AiProvider>().setUserNickname(_userNickname);
         final savedStyle = (response['chat_style'] as String?) ?? '自然';
         context.read<AiProvider>().setChatStyle(savedStyle);
+
+        // 恢复模型选择
+        final savedModelName = response['ai_model'] as String?;
+        if (savedModelName != null && savedModelName.isNotEmpty) {
+          try {
+            final savedModel = AiModel.values.firstWhere(
+              (m) => m.name == savedModelName,
+            );
+            context.read<AiProvider>().setModel(savedModel);
+          } catch (_) {
+            // 找不到匹配的模型，保持默认
+          }
+        }
       }
     } catch (e) {
       debugPrint('加载设置失败: $e');

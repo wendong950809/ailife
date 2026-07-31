@@ -3,19 +3,24 @@ import 'package:http/http.dart' as http;
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 enum AiModel {
-  deepseekChat('deepseek-chat', 'DeepSeek'),
-  gpt4oMini('gpt-4o-mini', 'GPT-4o Mini'),
-  gpt35('gpt-3.5-turbo', 'GPT-3.5');
+  deepseekChat('deepseek-chat', 'DeepSeek Chat', 'deepseek', 'https://api.deepseek.com/v1', '付费，能力强'),
+  glm4Flash('glm-4-flash-250414', '智谱 GLM-4-Flash', 'zhipu', 'https://open.bigmodel.cn/api/paas/v4', '免费，速度快'),
+  gpt4oMini('gpt-4o-mini', 'GPT-4o Mini', 'openai', 'https://api.openai-proxy.com/v1', '付费，能力强'),
+  gpt35('gpt-3.5-turbo', 'GPT-3.5', 'openai', 'https://api.openai-proxy.com/v1', '付费');
 
-  const AiModel(this.id, this.name);
+  const AiModel(this.id, this.name, this.provider, this.baseUrl, this.description);
   final String id;
   final String name;
+  final String provider;
+  final String baseUrl;
+  final String description;
 }
 
 class AiService {
-  AiModel _currentModel = AiModel.deepseekChat;
+  AiModel _currentModel = AiModel.glm4Flash; // 默认用免费的智谱
   final String? _deepseekKey;
   final String? _openaiKey;
+  final String? _zhipuKey;
   String _aiName = '知伴';
   String _userNickname = '';
   String _chatStyle = '自然';
@@ -146,8 +151,10 @@ ${_stylePrompt()}
   AiService({
     String? deepseekKey,
     String? openaiKey,
+    String? zhipuKey,
   })  : _deepseekKey = deepseekKey,
-        _openaiKey = openaiKey;
+        _openaiKey = openaiKey,
+        _zhipuKey = zhipuKey;
 
   AiModel get currentModel => _currentModel;
 
@@ -174,22 +181,24 @@ ${_stylePrompt()}
   String get chatStyle => _chatStyle;
 
   bool isOpenaiModel(AiModel model) {
-    return model == AiModel.gpt4oMini ||
-        model == AiModel.gpt35;
+    return model.provider == 'openai';
   }
 
   String get _baseUrl {
-    if (isOpenaiModel(_currentModel)) {
-      return 'https://api.openai-proxy.com/v1';
-    }
-    return 'https://api.deepseek.com/v1';
+    return _currentModel.baseUrl;
   }
 
   String? get _apiKey {
-    if (isOpenaiModel(_currentModel)) {
-      return _openaiKey;
+    switch (_currentModel.provider) {
+      case 'deepseek':
+        return _deepseekKey;
+      case 'zhipu':
+        return _zhipuKey;
+      case 'openai':
+        return _openaiKey;
+      default:
+        return _deepseekKey;
     }
-    return _deepseekKey;
   }
 
   Future<String> chatCompletion({
