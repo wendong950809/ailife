@@ -243,22 +243,22 @@ class _ProfilePageState extends State<ProfilePage> {
       LifeItem(
         title: '关系',
         subtitle: '${_dimensions['relations']}位重要人物',
-        icon: Icons.group_outlined,
+        icon: Icons.group,
       ),
       LifeItem(
         title: '目标',
         subtitle: '${_dimensions['goals']}个进行中',
-        icon: Icons.flag_outlined,
+        icon: Icons.flag,
       ),
       LifeItem(
         title: '经历',
         subtitle: '${_dimensions['events']}个事件',
-        icon: Icons.menu_book_outlined,
+        icon: Icons.menu_book,
       ),
       LifeItem(
         title: '价值观',
         subtitle: '${_dimensions['values']}条核心价值观',
-        icon: Icons.favorite_outline,
+        icon: Icons.favorite,
       ),
     ];
 
@@ -427,7 +427,7 @@ class _ProfilePageState extends State<ProfilePage> {
         child: Row(
           children: [
             Icon(
-              Icons.settings_outlined,
+              Icons.settings,
               size: 18,
               color: AppColors.textSecondary,
             ),

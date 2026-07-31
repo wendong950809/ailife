@@ -169,7 +169,7 @@ class _TodayPageState extends State<TodayPage> {
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: const Icon(
-                  Icons.message_outlined,
+                  Icons.message,
                   size: 12,
                   color: AppColors.primary,
                 ),
@@ -484,7 +484,7 @@ class _TodayPageState extends State<TodayPage> {
           Row(
             children: const [
               Icon(
-                Icons.info_outline,
+                Icons.info,
                 size: 14,
                 color: AppColors.primary,
               ),

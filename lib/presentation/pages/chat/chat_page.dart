@@ -442,20 +442,21 @@ class _ChatPageState extends State<ChatPage> {
     }
   }
 
-  /// 解析消息的日期（年月日），用于分组判断
-  DateTime? _parseMessageDate(String? createdAtStr) {
+  static const int _timeGapMinutes = 12;
+
+  /// 解析消息的完整时间，用于分组判断
+  DateTime? _parseMessageDateTime(String? createdAtStr) {
     if (createdAtStr == null) return null;
     try {
-      final dt = DateTime.parse(createdAtStr);
-      return DateTime(dt.year, dt.month, dt.day);
+      return DateTime.parse(createdAtStr).toLocal();
     } catch (_) {
       return null;
     }
   }
 
-  /// 获取日期分组标签（显示用）
-  String _getDateGroupLabel(String? createdAtStr) {
-    if (createdAtStr == null) return '更早';
+  /// 时间分组标签：显示具体时分，跨天的加"昨天"等前缀
+  String _formatTimeLabel(String? createdAtStr) {
+    if (createdAtStr == null) return '';
     try {
       final dt = DateTime.parse(createdAtStr).toLocal();
       final now = DateTime.now();
@@ -463,13 +464,19 @@ class _ChatPageState extends State<ChatPage> {
       final date = DateTime(dt.year, dt.month, dt.day);
       final diff = today.difference(date).inDays;
 
-      if (diff == 0) return '今天';
-      if (diff == 1) return '昨天';
-      if (diff < 7) return '本周';
-      if (date.month == now.month && date.year == now.year) return '本月';
-      return '${dt.year}年${dt.month}月';
+      final hh = dt.hour.toString().padLeft(2, '0');
+      final mm = dt.minute.toString().padLeft(2, '0');
+      final timeStr = '$hh:$mm';
+
+      if (diff == 0) return timeStr;
+      if (diff == 1) return '昨天 $timeStr';
+      if (diff < 7) {
+        const weekdays = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
+        return '${weekdays[dt.weekday - 1]} $timeStr';
+      }
+      return '${dt.month}月${dt.day}日 $timeStr';
     } catch (_) {
-      return '更早';
+      return '';
     }
   }
 
@@ -823,7 +830,7 @@ class _ChatPageState extends State<ChatPage> {
                       color: AppColors.stateError.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    child: const Icon(Icons.delete_outline, color: AppColors.stateError, size: 20),
+                    child: const Icon(Icons.delete, color: AppColors.stateError, size: 20),
                   ),
                   const SizedBox(width: 12),
                   const Text(
@@ -909,7 +916,7 @@ class _ChatPageState extends State<ChatPage> {
       padding: const EdgeInsets.only(top: 4),
       child: Row(
         children: [
-          Icon(Icons.check_circle_outline, size: 14, color: AppColors.textTertiary),
+          Icon(Icons.check_circle, size: 14, color: AppColors.textTertiary),
           const SizedBox(width: 6),
           Text(text, style: TextStyle(fontSize: 12, color: AppColors.textTertiary)),
         ],
@@ -1094,17 +1101,23 @@ class _ChatPageState extends State<ChatPage> {
       _searchController.clear();
     });
 
-    // 计算目标位置（需要考虑日期分组头的高度）
+    // 计算目标位置（需要考虑时间分组头的高度）
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_scrollController.hasClients) {
-        // 粗略估算：每条消息约 80px，加上日期头
         double offset = 0;
-        DateTime? lastDate;
+        DateTime? lastDt;
         for (int i = 0; i < messageIndex && i < _messages.length; i++) {
-          final msgDate = _parseMessageDate(_messages[i]['created_at'] as String?);
-          if (msgDate != lastDate) {
-            offset += 40; // 日期头高度
-            lastDate = msgDate;
+          final msgDt = _parseMessageDateTime(_messages[i]['created_at'] as String?);
+          bool needHeader = false;
+          if (lastDt == null || msgDt == null) {
+            needHeader = true;
+          } else {
+            final diff = msgDt.difference(lastDt).inMinutes;
+            if (diff.abs() >= _timeGapMinutes) needHeader = true;
+          }
+          if (needHeader) {
+            offset += 40; // 时间头高度
+            lastDt = msgDt;
           }
           offset += 80; // 消息气泡大约高度
         }
@@ -1118,19 +1131,29 @@ class _ChatPageState extends State<ChatPage> {
     });
   }
 
-  /// 构建显示项列表（日期头 + 消息）
+  /// 构建显示项列表（时间头 + 消息）：基于12分钟间隔分组
   List<Map<String, dynamic>> _buildDisplayItems() {
     final items = <Map<String, dynamic>>[];
-    DateTime? lastDate;
+    DateTime? lastDt;
 
     for (int i = 0; i < _messages.length; i++) {
       final msg = _messages[i];
-      final msgDate = _parseMessageDate(msg['created_at'] as String?);
+      final msgDt = _parseMessageDateTime(msg['created_at'] as String?);
 
-      if (msgDate != lastDate) {
-        final label = _getDateGroupLabel(msg['created_at'] as String?);
-        items.add({'type': 'date_header', 'label': label});
-        lastDate = msgDate;
+      bool needHeader = false;
+      if (lastDt == null || msgDt == null) {
+        needHeader = true;
+      } else {
+        final diff = msgDt.difference(lastDt!).inMinutes;
+        if (diff.abs() >= _timeGapMinutes) needHeader = true;
+      }
+
+      if (needHeader) {
+        final label = _formatTimeLabel(msg['created_at'] as String?);
+        if (label.isNotEmpty) {
+          items.add({'type': 'date_header', 'label': label});
+        }
+        lastDt = msgDt;
       }
 
       items.add({'type': 'message', 'index': i, 'data': msg});
@@ -1368,7 +1391,7 @@ class _ChatPageState extends State<ChatPage> {
                 Row(
                   children: [
                     Icon(
-                      isUser ? Icons.person : Icons.smart_toy_outlined,
+                      isUser ? Icons.person : Icons.smart_toy,
                       size: 14,
                       color: isUser ? AppColors.primary : AppColors.textSecondary,
                     ),
@@ -1384,7 +1407,7 @@ class _ChatPageState extends State<ChatPage> {
                     const Spacer(),
                     if (createdAt != null)
                       Text(
-                        _getDateGroupLabel(createdAt),
+                        _formatTimeLabel(createdAt),
                         style: TextStyle(
                           fontSize: 11,
                           color: AppColors.textTertiary,
@@ -1524,7 +1547,7 @@ class _ChatPageState extends State<ChatPage> {
                 borderRadius: BorderRadius.circular(10),
                 border: Border.all(color: AppColors.borderLight),
               ),
-              child: Icon(Icons.settings_outlined, color: AppColors.textSecondary, size: 20),
+              child: Icon(Icons.settings, color: AppColors.textSecondary, size: 20),
             ),
           ),
         ],
@@ -1539,16 +1562,41 @@ class _ChatPageState extends State<ChatPage> {
 
     if (avatarUrl != null && avatarUrl.isNotEmpty) {
       return ClipOval(
-        child: Image.network(
+        child: _buildAvatarImage(
           avatarUrl,
-          width: 36,
-          height: 36,
-          fit: BoxFit.cover,
-          errorBuilder: (context, error, stackTrace) => _buildDefaultUserAvatar(auth, profile),
+          36,
+          _buildDefaultUserAvatar(auth, profile),
         ),
       );
     }
     return _buildDefaultUserAvatar(auth, profile);
+  }
+
+  /// 根据头像URL类型（base64 / URL）构建对应的Image Widget
+  Widget _buildAvatarImage(String url, double size, Widget fallback) {
+    if (url.startsWith('data:image')) {
+      try {
+        final parts = url.split(',');
+        if (parts.length == 2) {
+          final bytes = base64Decode(parts[1]);
+          return Image.memory(
+            bytes,
+            width: size,
+            height: size,
+            fit: BoxFit.cover,
+            errorBuilder: (context, error, stackTrace) => fallback,
+          );
+        }
+      } catch (_) {}
+      return fallback;
+    }
+    return Image.network(
+      url,
+      width: size,
+      height: size,
+      fit: BoxFit.cover,
+      errorBuilder: (context, error, stackTrace) => fallback,
+    );
   }
 
   Widget _buildDefaultUserAvatar(AuthProvider auth, UserProfile? profile) {
@@ -1583,12 +1631,10 @@ class _ChatPageState extends State<ChatPage> {
 
     if (avatarUrl != null && avatarUrl.isNotEmpty) {
       return ClipOval(
-        child: Image.network(
+        child: _buildAvatarImage(
           avatarUrl,
-          width: 40,
-          height: 40,
-          fit: BoxFit.cover,
-          errorBuilder: (context, error, stackTrace) => _buildDefaultAvatar(),
+          40,
+          _buildDefaultAvatar(),
         ),
       );
     }
@@ -1607,7 +1653,7 @@ class _ChatPageState extends State<ChatPage> {
           end: Alignment.bottomRight,
         ),
       ),
-      child: const Icon(Icons.chat_bubble_outline, color: Colors.white, size: 20),
+      child: const Icon(Icons.chat_bubble, color: Colors.white, size: 20),
     );
   }
 
@@ -1935,7 +1981,7 @@ class _ChatPageState extends State<ChatPage> {
                     shape: BoxShape.circle,
                     border: Border.all(color: AppColors.borderLight),
                   ),
-                  child: const Icon(Icons.image_outlined, color: AppColors.textTertiary, size: 18),
+                  child: const Icon(Icons.image, color: AppColors.textTertiary, size: 18),
                 ),
               ),
               const SizedBox(width: 8),
@@ -1951,14 +1997,14 @@ class _ChatPageState extends State<ChatPage> {
                     border: Border.all(color: _isRecording ? Colors.transparent : AppColors.borderLight),
                   ),
                   child: Icon(
-                    _isRecording ? Icons.stop_rounded : Icons.mic_none_rounded,
+                    _isRecording ? Icons.stop : Icons.mic_none,
                     color: _isRecording ? Colors.white : AppColors.textTertiary,
                     size: 18,
                   ),
                 ),
               ),
               const SizedBox(width: 10),
-              // 输入框（更优雅的圆角胶囊）
+              // 输入框（修复双边框问题，只保留一层）
               Expanded(
                 child: Container(
                   constraints: const BoxConstraints(maxHeight: 100, minHeight: 38),
@@ -1967,13 +2013,6 @@ class _ChatPageState extends State<ChatPage> {
                     color: AppColors.surface,
                     borderRadius: BorderRadius.circular(20),
                     border: Border.all(color: AppColors.borderLight),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.02),
-                        blurRadius: 4,
-                        offset: const Offset(0, 1),
-                      ),
-                    ],
                   ),
                   child: Row(
                     children: [
@@ -1985,11 +2024,11 @@ class _ChatPageState extends State<ChatPage> {
                           maxLines: null,
                           decoration: const InputDecoration(
                             border: InputBorder.none,
-                            contentPadding: EdgeInsets.symmetric(vertical: 10),
+                            isCollapsed: true,
                             hintText: '说点什么...',
                             hintStyle: TextStyle(color: AppColors.textTertiary, fontSize: 14),
                           ),
-                          style: const TextStyle(fontSize: 14, color: AppColors.textPrimary),
+                          style: const TextStyle(fontSize: 14, color: AppColors.textPrimary, height: 1.4),
                           onSubmitted: (_) => _sendMessage(),
                           onChanged: (_) => setState(() {}),
                         ),
@@ -2020,7 +2059,7 @@ class _ChatPageState extends State<ChatPage> {
                         : null,
                   ),
                   child: Icon(
-                    Icons.arrow_upward_rounded,
+                    Icons.arrow_upward,
                     color: hasText ? Colors.white : AppColors.textTertiary,
                     size: 20,
                   ),

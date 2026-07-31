@@ -62,7 +62,7 @@ class _MainShellState extends State<MainShell> {
                 ),
                 _buildTabItem(
                   index: 3,
-                  icon: Icons.person_outline,
+                  icon: Icons.person,
                   label: '我的',
                 ),
               ],

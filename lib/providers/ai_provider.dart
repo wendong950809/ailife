@@ -15,7 +15,14 @@ class AiProvider extends ChangeNotifier {
 
   AiProvider({
     required AiService aiService,
-  }) : _aiService = aiService;
+  }) : _aiService = aiService {
+    Supabase.instance.client.auth.onAuthStateChange.listen((data) {
+      final user = data.session?.user;
+      if (user != null) {
+        loadSettings(force: true);
+      }
+    });
+  }
 
   AiModel get currentModel => _currentModel;
   bool get isLoading => _isLoading;
