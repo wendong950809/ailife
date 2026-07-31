@@ -681,7 +681,7 @@ class _TimelinePageState extends State<TimelinePage> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(
-                    Icons.aspect_ratio_outlined,
+                    Icons.aspect_ratio,
                     size: 14,
                     color: AppColors.primary,
                   ),
@@ -1060,10 +1060,10 @@ class _TimelinePageState extends State<TimelinePage> {
   Widget _buildSourceChip(EventSource source) {
     final sourceMap = {
       EventSource.chat: {'icon': Icons.chat_bubble_outline, 'label': '聊天'},
-      EventSource.photo: {'icon': Icons.photo_outlined, 'label': '照片'},
+      EventSource.photo: {'icon': Icons.photo, 'label': '照片'},
       EventSource.voice: {'icon': Icons.mic_none, 'label': '语音'},
-      EventSource.calendar: {'icon': Icons.event_outlined, 'label': '日历'},
-      EventSource.document: {'icon': Icons.description_outlined, 'label': '文档'},
+      EventSource.calendar: {'icon': Icons.event, 'label': '日历'},
+      EventSource.document: {'icon': Icons.description, 'label': '文档'},
       EventSource.health: {'icon': Icons.favorite_border, 'label': '健康'},
     };
     final info = sourceMap[source]!;
@@ -1537,7 +1537,7 @@ class _TimelinePageState extends State<TimelinePage> {
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(
-            Icons.auto_stories_outlined,
+            Icons.auto_stories,
             size: 56,
             color: AppColors.textTertiary.withOpacity(0.35),
           ),
