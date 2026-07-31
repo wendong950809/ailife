@@ -1,0 +1,57 @@
+# Cloudflare Pages Headers - 彻底解决缓存导致不更新的问题
+
+# HTML入口页 - 永远不要强缓存，每次都要检查是否有新版本
+/index.html
+  Cache-Control: no-cache, no-store, must-revalidate, max-age=0
+  Pragma: no-cache
+  Expires: 0
+  X-Content-Type-Options: nosniff
+
+# Flutter bootstrap 启动器 - 每次都要检查最新
+/flutter_bootstrap.js
+  Cache-Control: no-cache, no-store, must-revalidate, max-age=0
+  Pragma: no-cache
+  Expires: 0
+
+# Service Worker - 每次都要检查最新
+/sw.dart.js
+  Cache-Control: no-cache, no-store, must-revalidate, max-age=0
+/flutter_service_worker.js
+  Cache-Control: no-cache, no-store, must-revalidate, max-age=0
+
+# Manifest.json - 短期缓存
+/manifest.json
+  Cache-Control: public, max-age=3600
+
+# 版本号静态资源（main.dart.js、assets、canvaskit等带hash的文件）- 强缓存一年，因为文件名中带hash会变
+/*.js
+  Cache-Control: public, max-age=31536000, immutable
+
+/*.css
+  Cache-Control: public, max-age=31536000, immutable
+
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+
+/canvaskit/*
+  Cache-Control: public, max-age=31536000, immutable
+
+/icons/*
+  Cache-Control: public, max-age=31536000, immutable
+
+/*.png
+  Cache-Control: public, max-age=31536000, immutable
+/*.jpg
+  Cache-Control: public, max-age=31536000, immutable
+/*.jpeg
+  Cache-Control: public, max-age=31536000, immutable
+/*.svg
+  Cache-Control: public, max-age=31536000, immutable
+/*.ico
+  Cache-Control: public, max-age=31536000, immutable
+/*.woff
+  Cache-Control: public, max-age=31536000, immutable
+/*.woff2
+  Cache-Control: public, max-age=31536000, immutable
+/*.ttf
+  Cache-Control: public, max-age=31536000, immutable

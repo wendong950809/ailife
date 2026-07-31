@@ -8,6 +8,14 @@
   <meta name="description" content="AI人生 - 你的数字自我，记录生活的每一刻">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 
+  <!-- 防缓存关键：每次访问都去服务器检查最新版本（PWA/Service Worker/CDN缓存太多层必须加） -->
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate, max-age=0">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  <meta http-equiv="Last-Modified" content="0">
+  <!-- 版本号：每次发布新版本都更新这个值，同时用于在页面上显示给用户校验 -->
+  <meta name="app-version" content="v0.4.0-20260731">
+
   <!-- PWA 主题色 -->
   <meta name="theme-color" content="#4A6CF7">
 
@@ -18,16 +26,52 @@
   <link rel="apple-touch-icon" href="icons/Icon-192.png">
 
   <!-- Favicon -->
-  <link rel="icon" type="image/png" href="favicon.png"/>
+  <link rel="icon" type="image/png" href="favicon.png?v=0.4.0"/>
 
-  <title>AI人生</title>
-  <link rel="manifest" href="manifest.json">
-  <script src="speech.js"></script>
+  <title>AI人生 v0.4.0</title>
+  <link rel="manifest" href="manifest.json?v=0.4.0">
+  <!-- 加版本号查询参数强制浏览器认为是新资源 -->
+  <script src="speech.js?v=0.4.0"></script>
 </head>
 <body>
+  <!-- 版本号徽标（可快速肉眼验证是否已更新，用户也能在页面底部看到） -->
+  <div id="version-badge" style="
+      position: fixed;
+      bottom: 4px;
+      right: 8px;
+      font-size: 10px;
+      color: rgba(74,108,247,0.45);
+      z-index: 99999;
+      pointer-events: none;
+      font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+      -webkit-user-select: none;
+      user-select: none;
+  ">AI人生 v0.4.0 · 20260731</div>
+
   <script>
     window.flutterWebRenderer = "html";
   </script>
-  <script src="flutter_bootstrap.js" async></script>
+  <!-- flutter_bootstrap.js 必须每次都拉最新，否则Flutter自己的Service Worker会缓存旧JS -->
+  <script src="flutter_bootstrap.js?v=0.4.0-20260731" async></script>
+
+  <!-- 额外保险：卸载旧的 Service Worker，确保不会再用旧缓存 -->
+  <script>
+    (function () {
+      if ('serviceWorker' in navigator) {
+        // 先注销所有旧的 SW
+        navigator.serviceWorker.getRegistrations().then(function (registrations) {
+          registrations.forEach(function (registration) {
+            registration.unregister();
+          });
+        });
+        // 清理所有 caches 缓存存储（PWA强缓存的根源之一）
+        if ('caches' in window) {
+          caches.keys().then(function (keys) {
+            return Promise.all(keys.map(function (k) { return caches.delete(k); }));
+          });
+        }
+      }
+    })();
+  </script>
 </body>
 </html>
