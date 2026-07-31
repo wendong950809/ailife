@@ -1970,7 +1970,7 @@ class _ChatPageState extends State<ChatPage> {
                     border: Border.all(color: _isRecording ? Colors.transparent : AppColors.borderLight),
                   ),
                   child: Icon(
-                    _isRecording ? Icons.stop_rounded : Icons.mic_none_rounded,
+                    _isRecording ? Icons.stop : Icons.mic_none,
                     color: _isRecording ? Colors.white : AppColors.textTertiary,
                     size: 18,
                   ),
@@ -2032,7 +2032,7 @@ class _ChatPageState extends State<ChatPage> {
                         : null,
                   ),
                   child: Icon(
-                    Icons.arrow_upward_rounded,
+                    Icons.arrow_upward,
                     color: hasText ? Colors.white : AppColors.textTertiary,
                     size: 20,
                   ),
