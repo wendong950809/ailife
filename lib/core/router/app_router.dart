@@ -7,8 +7,13 @@ import '../../presentation/pages/settings/settings_page.dart';
 import '../../presentation/widgets/main_shell.dart';
 
 class AppRouter {
+  static GoRouter? _router;
+
   static GoRouter createRouter(AuthProvider authProvider) {
-    return GoRouter(
+    // 缓存 GoRouter 实例，避免每次 AuthProvider notify 都重建导致路由重置
+    if (_router != null) return _router!;
+
+    _router = GoRouter(
       initialLocation: '/',
       redirect: (BuildContext context, GoRouterState state) {
         final isLoggedIn = authProvider.isAuthenticated;
@@ -45,5 +50,6 @@ class AppRouter {
         ),
       ],
     );
+    return _router!;
   }
 }

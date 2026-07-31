@@ -94,8 +94,9 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Widget _buildProfileHeader(UserProfile? profile) {
-    final auth = context.read<AuthProvider>();
+    final auth = context.watch<AuthProvider>();
     final email = auth.user?.email;
+    final avatarUrl = profile?.avatarUrl;
 
     return Column(
       children: [
@@ -106,20 +107,43 @@ class _ProfilePageState extends State<ProfilePage> {
             color: Color(0xFF1A1D26),
             shape: BoxShape.circle,
           ),
-          child: Center(
-            child: Text(
-              profile?.username?.isNotEmpty == true
-                  ? profile!.username![0]
-                  : (email?.isNotEmpty == true
-                      ? email![0].toUpperCase()
-                      : '用'),
-              style: const TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.w700,
-                color: Colors.white,
-              ),
-            ),
-          ),
+          child: avatarUrl != null && avatarUrl.isNotEmpty
+              ? ClipOval(
+                  child: Image.network(
+                    avatarUrl,
+                    width: 64,
+                    height: 64,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) => Center(
+                      child: Text(
+                        profile?.username?.isNotEmpty == true
+                            ? profile!.username![0]
+                            : (email?.isNotEmpty == true
+                                ? email![0].toUpperCase()
+                                : '用'),
+                        style: const TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ),
+                )
+              : Center(
+                  child: Text(
+                    profile?.username?.isNotEmpty == true
+                        ? profile!.username![0]
+                        : (email?.isNotEmpty == true
+                            ? email![0].toUpperCase()
+                            : '用'),
+                    style: const TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
         ),
         const SizedBox(height: 8),
         Text(

@@ -36,9 +36,10 @@ class _ChatPageState extends State<ChatPage> {
   StreamSubscription? _speechTextSub;
   StreamSubscription? _speechStatusSub;
 
-  String _aiName = '知伴';
   String? _aiAvatarUrl;
-  String _userNickname = '';
+
+  // 加载状态
+  bool _isLoadingMessages = false;
 
   // 分页加载
   static const int _pageSize = 20;
@@ -99,35 +100,20 @@ class _ChatPageState extends State<ChatPage> {
     if (user == null) return;
 
     try {
+      // 从数据库加载 AI 设置到 AiProvider（ai_name、nickname、chat_style、ai_model）
+      await context.read<AiProvider>().loadSettings();
+
+      // 加载头像（头像 URL 由 AuthProvider 管理，这里仅做本地缓存用于消息列表）
       final response = await Supabase.instance.client
           .from('profiles')
-          .select('ai_name, ai_avatar_url, nickname, chat_style, ai_model')
+          .select('ai_avatar_url')
           .eq('id', user.id)
           .single();
 
-      if (response != null) {
+      if (response != null && mounted) {
         setState(() {
-          _aiName = (response['ai_name'] as String?) ?? '知伴';
           _aiAvatarUrl = response['ai_avatar_url'] as String?;
-          _userNickname = (response['nickname'] as String?) ?? '';
         });
-        context.read<AiProvider>().setAiName(_aiName);
-        context.read<AiProvider>().setUserNickname(_userNickname);
-        final savedStyle = (response['chat_style'] as String?) ?? '自然';
-        context.read<AiProvider>().setChatStyle(savedStyle);
-
-        // 恢复模型选择
-        final savedModelName = response['ai_model'] as String?;
-        if (savedModelName != null && savedModelName.isNotEmpty) {
-          try {
-            final savedModel = AiModel.values.firstWhere(
-              (m) => m.name == savedModelName,
-            );
-            context.read<AiProvider>().setModel(savedModel);
-          } catch (_) {
-            // 找不到匹配的模型，保持默认
-          }
-        }
       }
     } catch (e) {
       debugPrint('加载设置失败: $e');
@@ -147,6 +133,17 @@ class _ChatPageState extends State<ChatPage> {
             if (nickname != null) 'nickname': nickname,
           })
           .eq('id', user.id);
+
+      // 同步更新 AiProvider 和 AuthProvider，确保三层一致
+      if (aiName != null && mounted) {
+        context.read<AiProvider>().setAiName(aiName);
+      }
+      if (nickname != null && mounted) {
+        context.read<AiProvider>().setUserNickname(nickname);
+      }
+      if (aiAvatarUrl != null && mounted) {
+        context.read<AuthProvider>().updateProfile(aiAvatarUrl: aiAvatarUrl);
+      }
     } catch (e) {
       debugPrint('保存设置失败: $e');
       if (e.toString().contains('column') && e.toString().contains('does not exist')) {
@@ -166,15 +163,15 @@ class _ChatPageState extends State<ChatPage> {
   String _processAiResponse(String content) {
     var cleaned = content;
     var hasCommand = false;
+    final aiProvider = context.read<AiProvider>();
 
     // 检测设置AI名称的标记：{{SET_AI_NAME:新名字}}
     final aiNameMatch = RegExp(r'\{\{SET_AI_NAME:(.+?)\}\}').firstMatch(cleaned);
     if (aiNameMatch != null) {
       final newName = aiNameMatch.group(1)?.trim();
       if (newName != null && newName.isNotEmpty) {
-        setState(() => _aiName = newName);
         _saveSettings(aiName: newName);
-        context.read<AiProvider>().setAiName(newName);
+        aiProvider.setAiName(newName);
         cleaned = cleaned.replaceFirst(aiNameMatch.group(0)!, '');
         hasCommand = true;
       }
@@ -185,9 +182,8 @@ class _ChatPageState extends State<ChatPage> {
     if (nicknameMatch != null) {
       final newNickname = nicknameMatch.group(1)?.trim();
       if (newNickname != null && newNickname.isNotEmpty) {
-        setState(() => _userNickname = newNickname);
         _saveSettings(nickname: newNickname);
-        context.read<AiProvider>().setUserNickname(newNickname);
+        aiProvider.setUserNickname(newNickname);
         cleaned = cleaned.replaceFirst(nicknameMatch.group(0)!, '');
         hasCommand = true;
       }
@@ -231,6 +227,18 @@ class _ChatPageState extends State<ChatPage> {
     }
   }
 
+  void _ensureSettingsLoaded() {
+    // 异步加载设置，不阻塞 UI
+    Future.microtask(() async {
+      try {
+        await _loadSettings();
+      } catch (e, stackTrace) {
+        debugPrint('加载设置失败: $e');
+        debugPrint('堆栈: $stackTrace');
+      }
+    });
+  }
+
   @override
   void dispose() {
     _speechTextSub?.cancel();
@@ -244,8 +252,9 @@ class _ChatPageState extends State<ChatPage> {
   }
 
   String _getUserName() {
-    if (_userNickname.isNotEmpty) {
-      return _userNickname;
+    final aiProvider = context.read<AiProvider>();
+    if (aiProvider.userNickname.isNotEmpty) {
+      return aiProvider.userNickname;
     }
     final auth = context.read<AuthProvider>();
     final username = auth.profile?.username;
@@ -261,6 +270,7 @@ class _ChatPageState extends State<ChatPage> {
 
   String _getWelcomeText() {
     final name = _getUserName();
+    final aiProvider = context.read<AiProvider>();
     return '早上好，$name。今天有什么想聊聊的？可以跟我分享任何事，我帮你记住和分析。';
   }
 
@@ -269,6 +279,7 @@ class _ChatPageState extends State<ChatPage> {
     final user = Supabase.instance.client.auth.currentUser;
     if (user == null) {
       setState(() {
+        _isLoadingMessages = false;
         _messages.add({
           'role': 'assistant',
           'content': _getWelcomeText(),
@@ -279,6 +290,8 @@ class _ChatPageState extends State<ChatPage> {
       });
       return;
     }
+
+    setState(() => _isLoadingMessages = true);
 
     try {
       // 按时间倒序获取最新的 _pageSize 条，然后反转为正序
@@ -343,7 +356,7 @@ class _ChatPageState extends State<ChatPage> {
       });
     }
 
-    setState(() {});
+    setState(() => _isLoadingMessages = false);
     Future.delayed(const Duration(milliseconds: 100), _scrollToBottom);
   }
 
@@ -588,13 +601,11 @@ class _ChatPageState extends State<ChatPage> {
     final intentValue = intentResult['value'] ?? '';
 
     if (intent == 'SET_AI_NAME' && intentValue.isNotEmpty) {
-      setState(() => _aiName = intentValue);
       aiProvider.setAiName(intentValue);
       await _saveSettings(aiName: intentValue);
     }
 
     if (intent == 'SET_USER_NICKNAME' && intentValue.isNotEmpty) {
-      setState(() => _userNickname = intentValue);
       aiProvider.setUserNickname(intentValue);
       await _saveSettings(nickname: intentValue);
     }
@@ -683,12 +694,17 @@ class _ChatPageState extends State<ChatPage> {
       final rawReply = _messages.last['content'] as String? ?? '';
       final cleanedReply = _processAiResponse(rawReply);
 
+      // 如果 AI 返回空内容，给用户明确提示
+      final finalReply = cleanedReply.trim().isEmpty
+          ? 'AI 暂时没有回复内容，请稍后重试或换个方式提问。'
+          : cleanedReply;
+
       setState(() {
-        _messages.last['content'] = cleanedReply;
+        _messages.last['content'] = finalReply;
       });
 
-      if (cleanedReply.isNotEmpty) {
-        final aiMessageId = await _saveMessage('assistant', cleanedReply);
+      if (finalReply.isNotEmpty && !finalReply.contains('AI 暂时没有回复内容')) {
+        final aiMessageId = await _saveMessage('assistant', finalReply);
         if (aiMessageId != null && _messages.isNotEmpty) {
           _messages.last['id'] = aiMessageId;
         }
@@ -697,7 +713,7 @@ class _ChatPageState extends State<ChatPage> {
       await _loggingService?.logAiResponse(
         userId: user.id,
         messageId: messageId,
-        content: cleanedReply,
+        content: finalReply,
         durationMs: aiDuration,
         success: true,
       );
@@ -1126,6 +1142,47 @@ class _ChatPageState extends State<ChatPage> {
   @override
   Widget build(BuildContext context) {
     _ensureLoaded();
+    _ensureSettingsLoaded();
+
+    // 首次加载消息时显示 loading，避免白屏
+    if (_isLoadingMessages && _messages.isEmpty) {
+      return Scaffold(
+        backgroundColor: AppColors.bg,
+        body: SafeArea(
+          child: Column(
+            children: [
+              _buildTopBar(),
+              const Expanded(
+                child: Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      SizedBox(
+                        width: 32,
+                        height: 32,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: AppColors.primary,
+                        ),
+                      ),
+                      SizedBox(height: 16),
+                      Text(
+                        '正在加载对话...',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: AppColors.textTertiary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: AppColors.bg,
       body: SafeArea(
@@ -1476,7 +1533,7 @@ class _ChatPageState extends State<ChatPage> {
   }
 
   Widget _buildUserAvatar() {
-    final auth = context.read<AuthProvider>();
+    final auth = context.watch<AuthProvider>();
     final profile = auth.profile;
     final avatarUrl = profile?.avatarUrl;
 
@@ -1520,8 +1577,8 @@ class _ChatPageState extends State<ChatPage> {
   }
 
   Widget _buildAiAvatar() {
-    // 优先使用 AuthProvider 中的实时数据，回退到本地缓存
-    final authAvatarUrl = context.read<AuthProvider>().profile?.aiAvatarUrl;
+    // 使用 watch 监听 AuthProvider 的实时数据，回退到本地缓存
+    final authAvatarUrl = context.watch<AuthProvider>().profile?.aiAvatarUrl;
     final avatarUrl = authAvatarUrl ?? _aiAvatarUrl;
 
     if (avatarUrl != null && avatarUrl.isNotEmpty) {
@@ -1555,13 +1612,17 @@ class _ChatPageState extends State<ChatPage> {
   }
 
   void _showSettings() {
+    final aiProvider = context.read<AiProvider>();
+    final currentAiName = aiProvider.aiName;
+    final currentNickname = aiProvider.userNickname;
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) {
-        String newAiName = _aiName;
-        String newNickname = _userNickname;
+        String newAiName = currentAiName;
+        String newNickname = currentNickname;
 
         return Container(
           margin: const EdgeInsets.all(16),
@@ -1610,14 +1671,10 @@ class _ChatPageState extends State<ChatPage> {
                   const SizedBox(width: 12),
                   Expanded(
                     child: ElevatedButton(
-                      onPressed: () {
-                        setState(() {
-                          _aiName = newAiName;
-                          _userNickname = newNickname;
-                        });
-                        _saveSettings(aiName: newAiName, nickname: newNickname);
-                        context.read<AiProvider>().setAiName(newAiName);
-                        context.read<AiProvider>().setUserNickname(newNickname);
+                      onPressed: () async {
+                        if (newAiName != currentAiName || newNickname != currentNickname) {
+                          await _saveSettings(aiName: newAiName, nickname: newNickname);
+                        }
                         Navigator.pop(context);
                       },
                       child: const Text('保存'),
@@ -1777,6 +1834,8 @@ class _ChatPageState extends State<ChatPage> {
 
   Widget _buildInputBar() {
     final hasText = _messageController.text.trim().isNotEmpty;
+    final aiProvider = context.read<AiProvider>();
+
     return Container(
       padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
       decoration: BoxDecoration(
@@ -1787,6 +1846,38 @@ class _ChatPageState extends State<ChatPage> {
       ),
       child: Column(
         children: [
+          // AI 正在思考提示条
+          if (_isGenerating)
+            Container(
+              margin: const EdgeInsets.only(bottom: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              decoration: BoxDecoration(
+                color: AppColors.primary.withOpacity(0.08),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  SizedBox(
+                    width: 14,
+                    height: 14,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: AppColors.primary,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    '${aiProvider.aiName}正在回复中...',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: AppColors.primary,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+            ),
           if (_isRecording)
             Container(
               margin: const EdgeInsets.only(bottom: 8),
@@ -1894,7 +1985,6 @@ class _ChatPageState extends State<ChatPage> {
                           maxLines: null,
                           decoration: const InputDecoration(
                             border: InputBorder.none,
-                            isCollapsed: true,
                             contentPadding: EdgeInsets.symmetric(vertical: 10),
                             hintText: '说点什么...',
                             hintStyle: TextStyle(color: AppColors.textTertiary, fontSize: 14),

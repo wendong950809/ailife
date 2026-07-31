@@ -118,8 +118,39 @@ void main() async {
   }
 }
 
-class AiLifeApp extends StatelessWidget {
+class AiLifeApp extends StatefulWidget {
   const AiLifeApp({super.key});
+
+  @override
+  State<AiLifeApp> createState() => _AiLifeAppState();
+}
+
+class _AiLifeAppState extends State<AiLifeApp> {
+  bool _aiSettingsInitialized = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // 在首帧渲染后，如果用户已登录，预加载 AI 设置
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _initAiSettings();
+    });
+  }
+
+  void _initAiSettings() {
+    if (_aiSettingsInitialized) return;
+    _aiSettingsInitialized = true;
+
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user != null) {
+      try {
+        final aiProvider = Provider.of<AiProvider>(context, listen: false);
+        aiProvider.loadSettings();
+      } catch (e) {
+        debugPrint('预加载 AI 设置失败: $e');
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {

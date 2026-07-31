@@ -18,32 +18,19 @@ class SettingsPage extends StatefulWidget {
 }
 
 class _SettingsPageState extends State<SettingsPage> {
-  String _chatStyle = '自然';
-  bool _chatStyleLoaded = false;
-
   final _chatStyles = ['自然', '简洁', '温柔', '幽默', '理性', '活泼'];
+  bool _settingsLoaded = false;
 
-  /// 加载保存的对话风格（仅加载一次）
-  Future<void> _loadChatStyleIfNeeded() async {
-    if (_chatStyleLoaded) return;
-    _chatStyleLoaded = true;
+  /// 加载保存的 AI 设置（从 AiProvider 统一加载）
+  Future<void> _loadSettingsIfNeeded() async {
+    if (_settingsLoaded) return;
+    _settingsLoaded = true;
     final user = Supabase.instance.client.auth.currentUser;
     if (user == null) return;
     try {
-      final response = await Supabase.instance.client
-          .from('profiles')
-          .select('chat_style')
-          .eq('id', user.id)
-          .single();
-      final saved = response['chat_style'] as String?;
-      if (saved != null && saved.isNotEmpty && saved != _chatStyle) {
-        setState(() => _chatStyle = saved);
-        if (mounted) {
-          context.read<AiProvider>().setChatStyle(saved);
-        }
-      }
+      await context.read<AiProvider>().loadSettings();
     } catch (e) {
-      debugPrint('加载对话风格失败: $e');
+      debugPrint('加载设置失败: $e');
     }
   }
 
@@ -146,7 +133,7 @@ class _SettingsPageState extends State<SettingsPage> {
   Widget build(BuildContext context) {
     final auth = Provider.of<AuthProvider>(context);
     final profile = auth.profile;
-    _loadChatStyleIfNeeded();
+    _loadSettingsIfNeeded();
 
     return Scaffold(
       backgroundColor: AppColors.bg,
@@ -166,7 +153,7 @@ class _SettingsPageState extends State<SettingsPage> {
           Center(
             child: Consumer<AiProvider>(
               builder: (context, aiProvider, _) => Text(
-                '${aiProvider.aiName} v0.3',
+                '${aiProvider.aiName} v0.4.0',
                 style: const TextStyle(
                   fontSize: 11,
                   color: AppColors.textTertiary,
@@ -250,7 +237,8 @@ class _SettingsPageState extends State<SettingsPage> {
                 initialDate: profile?.birthday ?? DateTime(1995, 1, 1),
                 firstDate: DateTime(1950),
                 lastDate: DateTime.now(),
-                locale: const Locale('zh', 'CN'),
+                // 移除 locale: zh_CN，避免 Flutter Web 因缺少中文本地化资源而白屏
+                // main.dart 中已初始化 zh_CN 日期格式，但 DatePicker 还需要 GlobalMaterialLocalizations
                 builder: (context, child) => Theme(
                   data: Theme.of(context).copyWith(
                     colorScheme: const ColorScheme.light(
@@ -279,7 +267,7 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   Widget _buildAvatar(UserProfile? profile) {
-    final auth = context.read<AuthProvider>();
+    final auth = context.watch<AuthProvider>();
     final email = auth.user?.email;
     final displayChar = profile?.username?.isNotEmpty == true
         ? profile!.username![0]
@@ -350,8 +338,7 @@ class _SettingsPageState extends State<SettingsPage> {
                   title: '修改${aiProvider.aiName}的名字',
                   initialValue: aiProvider.aiName,
                   onSave: (value) async {
-                    aiProvider.setAiName(value);
-                    await _saveAiName(value);
+                    await _saveAiName(value, aiProvider);
                   },
                 ),
               ),
@@ -363,8 +350,7 @@ class _SettingsPageState extends State<SettingsPage> {
                   title: '设置${aiProvider.aiName}怎么称呼你',
                   initialValue: aiProvider.userNickname,
                   onSave: (value) async {
-                    aiProvider.setUserNickname(value);
-                    await _saveUserNickname(value);
+                    await _saveUserNickname(value, aiProvider);
                   },
                 ),
               ),
@@ -391,7 +377,7 @@ class _SettingsPageState extends State<SettingsPage> {
               _buildDivider(),
               _buildSettingRow(
                 title: '对话风格',
-                subtitle: _chatStyle,
+                subtitle: aiProvider.chatStyle,
                 onTap: () => _showChatStylePicker(aiProvider),
               ),
               _buildDivider(),
@@ -407,30 +393,14 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
-  Future<void> _saveAiName(String name) async {
-    final user = Provider.of<AuthProvider>(context, listen: false).user;
-    if (user == null) return;
-    try {
-      await Supabase.instance.client
-          .from('profiles')
-          .update({'ai_name': name})
-          .eq('id', user.id);
-    } catch (e) {
-      debugPrint('保存AI名称失败: $e');
-    }
+  Future<void> _saveAiName(String name, AiProvider aiProvider) async {
+    aiProvider.setAiName(name);
+    await aiProvider.saveSettings();
   }
 
-  Future<void> _saveUserNickname(String nickname) async {
-    final user = Provider.of<AuthProvider>(context, listen: false).user;
-    if (user == null) return;
-    try {
-      await Supabase.instance.client
-          .from('profiles')
-          .update({'nickname': nickname})
-          .eq('id', user.id);
-    } catch (e) {
-      debugPrint('保存用户昵称失败: $e');
-    }
+  Future<void> _saveUserNickname(String nickname, AiProvider aiProvider) async {
+    aiProvider.setUserNickname(nickname);
+    await aiProvider.saveSettings();
   }
 
   Future<void> _uploadAiAvatar() async {
@@ -491,7 +461,7 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   Widget _buildAiAvatarWidget(AiProvider aiProvider) {
-    final auth = context.read<AuthProvider>();
+    final auth = context.watch<AuthProvider>();
     final avatarUrl = auth.profile?.aiAvatarUrl;
 
     if (avatarUrl != null && avatarUrl.isNotEmpty) {
@@ -578,7 +548,7 @@ class _SettingsPageState extends State<SettingsPage> {
               spacing: 10,
               runSpacing: 10,
               children: _chatStyles.map((style) {
-                final isSelected = style == _chatStyle;
+                final isSelected = style == aiProvider.chatStyle;
                 return GestureDetector(
                   onTap: () => Navigator.pop(context, style),
                   child: Container(
@@ -613,22 +583,11 @@ class _SettingsPageState extends State<SettingsPage> {
       ),
     );
 
-    if (result != null && result != _chatStyle) {
-      setState(() => _chatStyle = result);
+    if (result != null && result != aiProvider.chatStyle) {
       // 同步到 AiProvider -> AiService
       aiProvider.setChatStyle(result);
       // 保存到数据库
-      final user = Provider.of<AuthProvider>(context, listen: false).user;
-      if (user != null) {
-        try {
-          await Supabase.instance.client
-              .from('profiles')
-              .update({'chat_style': result})
-              .eq('id', user.id);
-        } catch (e) {
-          debugPrint('保存对话风格失败: $e');
-        }
-      }
+      await aiProvider.saveSettings();
     }
   }
 
@@ -706,17 +665,7 @@ class _SettingsPageState extends State<SettingsPage> {
     if (result != null && result != aiProvider.currentModel) {
       aiProvider.setModel(result);
       // 保存到数据库
-      final user = Provider.of<AuthProvider>(context, listen: false).user;
-      if (user != null) {
-        try {
-          await Supabase.instance.client
-              .from('profiles')
-              .update({'ai_model': result.name})
-              .eq('id', user.id);
-        } catch (e) {
-          debugPrint('保存AI模型选择失败: $e');
-        }
-      }
+      await aiProvider.saveSettings();
     }
   }
 
