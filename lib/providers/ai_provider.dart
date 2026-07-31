@@ -15,7 +15,16 @@ class AiProvider extends ChangeNotifier {
 
   AiProvider({
     required AiService aiService,
-  }) : _aiService = aiService;
+  }) : _aiService = aiService {
+    // 监听 auth 状态变化：当 session 恢复/用户登录时，自动加载 AI 设置
+    // 解决 Web 端刷新页面时 session 异步恢复导致 loadSettings 被跳过的问题
+    Supabase.instance.client.auth.onAuthStateChange.listen((data) {
+      final user = data.session?.user;
+      if (user != null) {
+        loadSettings(force: true);
+      }
+    });
+  }
 
   AiModel get currentModel => _currentModel;
   bool get isLoading => _isLoading;
