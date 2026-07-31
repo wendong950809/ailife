@@ -681,7 +681,7 @@ class _TimelinePageState extends State<TimelinePage> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(
-                    Icons.zoom_in_out_outlined,
+                    Icons.aspect_ratio_outlined,
                     size: 14,
                     color: AppColors.primary,
                   ),
