@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
@@ -109,26 +110,7 @@ class _ProfilePageState extends State<ProfilePage> {
           ),
           child: avatarUrl != null && avatarUrl.isNotEmpty
               ? ClipOval(
-                  child: Image.network(
-                    avatarUrl,
-                    width: 64,
-                    height: 64,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) => Center(
-                      child: Text(
-                        profile?.username?.isNotEmpty == true
-                            ? profile!.username![0]
-                            : (email?.isNotEmpty == true
-                                ? email![0].toUpperCase()
-                                : '用'),
-                        style: const TextStyle(
-                          fontSize: 22,
-                          fontWeight: FontWeight.w700,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ),
-                  ),
+                  child: _buildAvatarImage(avatarUrl, 64, 64),
                 )
               : Center(
                   child: Text(
@@ -163,6 +145,36 @@ class _ProfilePageState extends State<ProfilePage> {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildAvatarImage(String url, double width, double height) {
+    if (url.startsWith('data:image')) {
+      try {
+        final bytes = base64Decode(url.split(',')[1]);
+        return Image.memory(
+          bytes,
+          width: width,
+          height: height,
+          fit: BoxFit.cover,
+          errorBuilder: (context, error, stackTrace) => _buildFallbackAvatar(width),
+        );
+      } catch (_) {
+        return _buildFallbackAvatar(width);
+      }
+    }
+    return Image.network(
+      url,
+      width: width,
+      height: height,
+      fit: BoxFit.cover,
+      errorBuilder: (context, error, stackTrace) => _buildFallbackAvatar(width),
+    );
+  }
+
+  Widget _buildFallbackAvatar(double size) {
+    return Center(
+      child: Icon(Icons.person, size: size * 0.5, color: Colors.white),
     );
   }
 

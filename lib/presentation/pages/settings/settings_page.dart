@@ -39,82 +39,26 @@ class _SettingsPageState extends State<SettingsPage> {
       final picker = ImagePicker();
       final XFile? image = await picker.pickImage(
         source: ImageSource.gallery,
-        maxWidth: 512,
-        maxHeight: 512,
-        imageQuality: 80,
+        maxWidth: 256,
+        maxHeight: 256,
+        imageQuality: 75,
       );
       if (image == null) return;
 
       final user = Supabase.instance.client.auth.currentUser;
       if (user == null) return;
 
-      setState(() {}); // 触发UI更新
-
-      // 读取文件bytes
       final bytes = await image.readAsBytes();
       final fileExt = image.path.split('.').last.toLowerCase();
-      final filePath = '${user.id}/avatar.$fileExt';
+      final base64Image = 'data:image/$fileExt;base64,${base64Encode(bytes)}';
 
-      // 尝试上传，如果桶不存在会报错
-      try {
-        await Supabase.instance.client.storage
-            .from('avatars')
-            .uploadBinary(
-              filePath,
-              bytes,
-              fileOptions: FileOptions(
-                contentType: 'image/$fileExt',
-                upsert: true,
-              ),
-            );
-      } catch (uploadError) {
-        // 如果桶不存在，尝试创建
-        debugPrint('上传失败，尝试创建桶: $uploadError');
-        try {
-          await Supabase.instance.client.storage.createBucket('avatars');
-          await Supabase.instance.client.storage
-              .from('avatars')
-              .uploadBinary(
-                filePath,
-                bytes,
-                fileOptions: FileOptions(
-                  contentType: 'image/$fileExt',
-                  upsert: true,
-                ),
-              );
-        } catch (e2) {
-          debugPrint('创建桶也失败: $e2');
-          // 降级方案：用 base64 存到 profiles 表
-          final base64Image = 'data:image/$fileExt;base64,${base64Encode(bytes)}';
-          await Supabase.instance.client
-              .from('profiles')
-              .update({'avatar_url': base64Image})
-              .eq('id', user.id);
-
-          if (mounted) {
-            context.read<AuthProvider>().updateProfile(avatarUrl: base64Image);
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('头像更新成功'), duration: Duration(seconds: 2)),
-            );
-          }
-          return;
-        }
-      }
-
-      // 获取公开URL
-      final publicUrl = Supabase.instance.client.storage
-          .from('avatars')
-          .getPublicUrl(filePath);
-
-      // 更新 profiles 表
       await Supabase.instance.client
           .from('profiles')
-          .update({'avatar_url': publicUrl})
+          .update({'avatar_url': base64Image})
           .eq('id', user.id);
 
-      // 更新 AuthProvider
       if (mounted) {
-        context.read<AuthProvider>().updateProfile(avatarUrl: publicUrl);
+        context.read<AuthProvider>().updateProfile(avatarUrl: base64Image);
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('头像更新成功'), duration: Duration(seconds: 2)),
         );
@@ -153,7 +97,7 @@ class _SettingsPageState extends State<SettingsPage> {
           Center(
             child: Consumer<AiProvider>(
               builder: (context, aiProvider, _) => Text(
-                '${aiProvider.aiName} v0.4.1',
+                '${aiProvider.aiName} v0.4.2',
                 style: const TextStyle(
                   fontSize: 11,
                   color: AppColors.textTertiary,
@@ -279,16 +223,34 @@ class _SettingsPageState extends State<SettingsPage> {
     final avatarUrl = profile?.avatarUrl;
     if (avatarUrl != null && avatarUrl.isNotEmpty) {
       return ClipOval(
-        child: Image.network(
-          avatarUrl,
-          width: 32,
-          height: 32,
-          fit: BoxFit.cover,
-          errorBuilder: (context, error, stackTrace) => _buildDefaultAvatar(displayChar),
-        ),
+        child: _buildAvatarImage(avatarUrl, 32, 32, _buildDefaultAvatar(displayChar)),
       );
     }
     return _buildDefaultAvatar(displayChar);
+  }
+
+  Widget _buildAvatarImage(String url, double width, double height, Widget fallback) {
+    if (url.startsWith('data:image')) {
+      try {
+        final bytes = base64Decode(url.split(',')[1]);
+        return Image.memory(
+          bytes,
+          width: width,
+          height: height,
+          fit: BoxFit.cover,
+          errorBuilder: (context, error, stackTrace) => fallback,
+        );
+      } catch (_) {
+        return fallback;
+      }
+    }
+    return Image.network(
+      url,
+      width: width,
+      height: height,
+      fit: BoxFit.cover,
+      errorBuilder: (context, error, stackTrace) => fallback,
+    );
   }
 
   Widget _buildDefaultAvatar(String displayChar) {
@@ -408,9 +370,9 @@ class _SettingsPageState extends State<SettingsPage> {
       final picker = ImagePicker();
       final XFile? image = await picker.pickImage(
         source: ImageSource.gallery,
-        maxWidth: 512,
-        maxHeight: 512,
-        imageQuality: 80,
+        maxWidth: 256,
+        maxHeight: 256,
+        imageQuality: 75,
       );
       if (image == null) return;
 
@@ -419,34 +381,16 @@ class _SettingsPageState extends State<SettingsPage> {
 
       final bytes = await image.readAsBytes();
       final fileExt = image.path.split('.').last.toLowerCase();
-      final filePath = '${user.id}/ai_avatar.$fileExt';
+      final avatarUrl = 'data:image/$fileExt;base64,${base64Encode(bytes)}';
 
-      String? avatarUrl;
-      try {
-        await Supabase.instance.client.storage
-            .from('avatars')
-            .uploadBinary(
-              filePath,
-              bytes,
-              fileOptions: FileOptions(
-                contentType: 'image/$fileExt',
-                upsert: true,
-              ),
-            );
-        avatarUrl = Supabase.instance.client.storage
-            .from('avatars')
-            .getPublicUrl(filePath);
-      } catch (uploadError) {
-        // 降级：base64
-        debugPrint('上传到存储失败，使用 base64: $uploadError');
-        avatarUrl = 'data:image/$fileExt;base64,${base64Encode(bytes)}';
-      }
+      await Supabase.instance.client
+          .from('profiles')
+          .update({'ai_avatar_url': avatarUrl})
+          .eq('id', user.id);
 
-      // 通过 AuthProvider 更新（同时写入数据库 + 刷新本地 profile）
       await context.read<AuthProvider>().updateProfile(aiAvatarUrl: avatarUrl);
 
       if (mounted) {
-        setState(() {}); // 触发 UI 刷新
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('AI头像更新成功'), duration: Duration(seconds: 2)),
         );
@@ -466,13 +410,7 @@ class _SettingsPageState extends State<SettingsPage> {
 
     if (avatarUrl != null && avatarUrl.isNotEmpty) {
       return ClipOval(
-        child: Image.network(
-          avatarUrl,
-          width: 32,
-          height: 32,
-          fit: BoxFit.cover,
-          errorBuilder: (context, error, stackTrace) => _buildDefaultAiAvatar(),
-        ),
+        child: _buildAvatarImage(avatarUrl, 32, 32, _buildDefaultAiAvatar()),
       );
     }
     return _buildDefaultAiAvatar();
