@@ -204,14 +204,20 @@ class AuthProvider extends ChangeNotifier {
           .update(data)
           .eq('id', _user!.id);
 
-      if (_profile != null) {
-        if (username != null) _profile = _profile!.copyWith(username: username);
-        if (bio != null) _profile = _profile!.copyWith(bio: bio);
-        if (avatarUrl != null) _profile = _profile!.copyWith(avatarUrl: avatarUrl);
-        if (aiAvatarUrl != null) _profile = _profile!.copyWith(aiAvatarUrl: aiAvatarUrl);
-        if (birthday != null) _profile = _profile!.copyWith(birthday: birthday);
-      } else {
-        await _loadProfile();
+      if (username != null && _profile != null) {
+        _profile = _profile!.copyWith(username: username);
+      }
+      if (bio != null && _profile != null) {
+        _profile = _profile!.copyWith(bio: bio);
+      }
+      if (avatarUrl != null && _profile != null) {
+        _profile = _profile!.copyWith(avatarUrl: avatarUrl);
+      }
+      if (aiAvatarUrl != null && _profile != null) {
+        _profile = _profile!.copyWith(aiAvatarUrl: aiAvatarUrl);
+      }
+      if (birthday != null && _profile != null) {
+        _profile = _profile!.copyWith(birthday: birthday);
       }
 
       await _loggingService.logProfileUpdate(

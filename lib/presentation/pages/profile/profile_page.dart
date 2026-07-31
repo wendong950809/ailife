@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
@@ -110,7 +109,26 @@ class _ProfilePageState extends State<ProfilePage> {
           ),
           child: avatarUrl != null && avatarUrl.isNotEmpty
               ? ClipOval(
-                  child: _buildAvatarImage(avatarUrl, 64, 64),
+                  child: Image.network(
+                    avatarUrl,
+                    width: 64,
+                    height: 64,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) => Center(
+                      child: Text(
+                        profile?.username?.isNotEmpty == true
+                            ? profile!.username![0]
+                            : (email?.isNotEmpty == true
+                                ? email![0].toUpperCase()
+                                : '用'),
+                        style: const TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ),
                 )
               : Center(
                   child: Text(
@@ -145,36 +163,6 @@ class _ProfilePageState extends State<ProfilePage> {
           ),
         ),
       ],
-    );
-  }
-
-  Widget _buildAvatarImage(String url, double width, double height) {
-    if (url.startsWith('data:image')) {
-      try {
-        final bytes = base64Decode(url.split(',')[1]);
-        return Image.memory(
-          bytes,
-          width: width,
-          height: height,
-          fit: BoxFit.cover,
-          errorBuilder: (context, error, stackTrace) => _buildFallbackAvatar(width),
-        );
-      } catch (_) {
-        return _buildFallbackAvatar(width);
-      }
-    }
-    return Image.network(
-      url,
-      width: width,
-      height: height,
-      fit: BoxFit.cover,
-      errorBuilder: (context, error, stackTrace) => _buildFallbackAvatar(width),
-    );
-  }
-
-  Widget _buildFallbackAvatar(double size) {
-    return Center(
-      child: Icon(Icons.person, size: size * 0.5, color: Colors.white),
     );
   }
 
@@ -255,22 +243,22 @@ class _ProfilePageState extends State<ProfilePage> {
       LifeItem(
         title: '关系',
         subtitle: '${_dimensions['relations']}位重要人物',
-        icon: Icons.group,
+        icon: Icons.group_outlined,
       ),
       LifeItem(
         title: '目标',
         subtitle: '${_dimensions['goals']}个进行中',
-        icon: Icons.flag,
+        icon: Icons.flag_outlined,
       ),
       LifeItem(
         title: '经历',
         subtitle: '${_dimensions['events']}个事件',
-        icon: Icons.menu_book,
+        icon: Icons.menu_book_outlined,
       ),
       LifeItem(
         title: '价值观',
         subtitle: '${_dimensions['values']}条核心价值观',
-        icon: Icons.favorite,
+        icon: Icons.favorite_outline,
       ),
     ];
 
@@ -439,7 +427,7 @@ class _ProfilePageState extends State<ProfilePage> {
         child: Row(
           children: [
             Icon(
-              Icons.settings,
+              Icons.settings_outlined,
               size: 18,
               color: AppColors.textSecondary,
             ),

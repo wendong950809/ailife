@@ -69,7 +69,7 @@ class _SignupPageState extends State<SignupPage> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   const Icon(
-                    Icons.person_add,
+                    Icons.person_add_outlined,
                     size: 80,
                     color: Color(0xFF6366F1),
                   ),
@@ -96,7 +96,7 @@ class _SignupPageState extends State<SignupPage> {
                     controller: _usernameController,
                     decoration: const InputDecoration(
                       labelText: '用户名',
-                      prefixIcon: Icon(Icons.person),
+                      prefixIcon: Icon(Icons.person_outline),
                     ),
                     validator: (value) {
                       if (value == null || value.isEmpty) {
@@ -114,7 +114,7 @@ class _SignupPageState extends State<SignupPage> {
                     keyboardType: TextInputType.emailAddress,
                     decoration: const InputDecoration(
                       labelText: '邮箱',
-                      prefixIcon: Icon(Icons.email),
+                      prefixIcon: Icon(Icons.email_outlined),
                     ),
                     validator: (value) {
                       if (value == null || value.isEmpty) {
@@ -132,7 +132,7 @@ class _SignupPageState extends State<SignupPage> {
                     obscureText: _obscurePassword,
                     decoration: InputDecoration(
                       labelText: '密码',
-                      prefixIcon: const Icon(Icons.lock),
+                      prefixIcon: const Icon(Icons.lock_outlined),
                       suffixIcon: IconButton(
                         icon: Icon(
                           _obscurePassword
@@ -162,7 +162,7 @@ class _SignupPageState extends State<SignupPage> {
                     obscureText: _obscureConfirmPassword,
                     decoration: InputDecoration(
                       labelText: '确认密码',
-                      prefixIcon: const Icon(Icons.lock),
+                      prefixIcon: const Icon(Icons.lock_outlined),
                       suffixIcon: IconButton(
                         icon: Icon(
                           _obscureConfirmPassword

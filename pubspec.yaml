@@ -2,7 +2,7 @@ name: ailife
 description: "AI人生 - Digital Self 数字自我"
 publish_to: 'none'
 
-version: 0.4.6+10
+version: 0.4.7+11
 
 environment:
   sdk: ^3.5.3

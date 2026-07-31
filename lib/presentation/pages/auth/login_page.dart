@@ -40,7 +40,7 @@ class _LoginPageState extends State<LoginPage> {
         content: Row(
           children: [
             const Icon(
-              Icons.error,
+              Icons.error_outline,
               color: Colors.white,
               size: 20,
             ),
@@ -81,7 +81,7 @@ class _LoginPageState extends State<LoginPage> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   const Icon(
-                    Icons.person,
+                    Icons.person_outline,
                     size: 80,
                     color: Color(0xFF6366F1),
                   ),
@@ -109,7 +109,7 @@ class _LoginPageState extends State<LoginPage> {
                     keyboardType: TextInputType.emailAddress,
                     decoration: const InputDecoration(
                       labelText: '邮箱',
-                      prefixIcon: Icon(Icons.email),
+                      prefixIcon: Icon(Icons.email_outlined),
                     ),
                     validator: (value) {
                       if (value == null || value.isEmpty) {
@@ -127,7 +127,7 @@ class _LoginPageState extends State<LoginPage> {
                     obscureText: _obscurePassword,
                     decoration: InputDecoration(
                       labelText: '密码',
-                      prefixIcon: const Icon(Icons.lock),
+                      prefixIcon: const Icon(Icons.lock_outlined),
                       suffixIcon: IconButton(
                         icon: Icon(
                           _obscurePassword

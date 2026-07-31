@@ -681,7 +681,7 @@ class _TimelinePageState extends State<TimelinePage> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(
-                    Icons.aspect_ratio,
+                    Icons.aspect_ratio_outlined,
                     size: 14,
                     color: AppColors.primary,
                   ),
@@ -1034,7 +1034,7 @@ class _TimelinePageState extends State<TimelinePage> {
               ),
               const SizedBox(height: 16),
               ListTile(
-                leading: const Icon(Icons.edit, color: AppColors.primary, size: 22),
+                leading: const Icon(Icons.edit_outlined, color: AppColors.primary, size: 22),
                 title: const Text('重温', style: TextStyle(fontSize: 15, color: AppColors.textPrimary)),
                 onTap: () {
                   Navigator.pop(context);
@@ -1042,7 +1042,7 @@ class _TimelinePageState extends State<TimelinePage> {
                 },
               ),
               ListTile(
-                leading: const Icon(Icons.delete, color: Colors.red, size: 22),
+                leading: const Icon(Icons.delete_outline, color: Colors.red, size: 22),
                 title: const Text('删除', style: TextStyle(fontSize: 15, color: Colors.red)),
                 onTap: () {
                   Navigator.pop(context);
@@ -1059,11 +1059,11 @@ class _TimelinePageState extends State<TimelinePage> {
 
   Widget _buildSourceChip(EventSource source) {
     final sourceMap = {
-      EventSource.chat: {'icon': Icons.chat_bubble, 'label': '聊天'},
-      EventSource.photo: {'icon': Icons.photo, 'label': '照片'},
+      EventSource.chat: {'icon': Icons.chat_bubble_outline, 'label': '聊天'},
+      EventSource.photo: {'icon': Icons.photo_outlined, 'label': '照片'},
       EventSource.voice: {'icon': Icons.mic_none, 'label': '语音'},
-      EventSource.calendar: {'icon': Icons.event, 'label': '日历'},
-      EventSource.document: {'icon': Icons.description, 'label': '文档'},
+      EventSource.calendar: {'icon': Icons.event_outlined, 'label': '日历'},
+      EventSource.document: {'icon': Icons.description_outlined, 'label': '文档'},
       EventSource.health: {'icon': Icons.favorite_border, 'label': '健康'},
     };
     final info = sourceMap[source]!;
@@ -1375,7 +1375,7 @@ class _TimelinePageState extends State<TimelinePage> {
                                   Navigator.pop(context);
                                   _editEvent(event);
                                 },
-                                icon: const Icon(Icons.edit, size: 18, color: AppColors.primary),
+                                icon: const Icon(Icons.edit_outlined, size: 18, color: AppColors.primary),
                                 label: const Text('重温', style: TextStyle(color: AppColors.primary)),
                                 style: OutlinedButton.styleFrom(
                                   side: const BorderSide(color: AppColors.primary),
@@ -1391,7 +1391,7 @@ class _TimelinePageState extends State<TimelinePage> {
                                   Navigator.pop(context);
                                   _deleteEvent(event);
                                 },
-                                icon: const Icon(Icons.delete, size: 18, color: Colors.red),
+                                icon: const Icon(Icons.delete_outline, size: 18, color: Colors.red),
                                 label: const Text('删除', style: TextStyle(color: Colors.red)),
                                 style: OutlinedButton.styleFrom(
                                   side: BorderSide(color: Colors.red.withOpacity(0.5)),
@@ -1537,7 +1537,7 @@ class _TimelinePageState extends State<TimelinePage> {
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(
-            Icons.auto_stories,
+            Icons.auto_stories_outlined,
             size: 56,
             color: AppColors.textTertiary.withOpacity(0.35),
           ),
