@@ -153,7 +153,7 @@ class _SettingsPageState extends State<SettingsPage> {
           Center(
             child: Consumer<AiProvider>(
               builder: (context, aiProvider, _) => Text(
-                '${aiProvider.aiName} v0.4.0',
+                '${aiProvider.aiName} v0.4.1',
                 style: const TextStyle(
                   fontSize: 11,
                   color: AppColors.textTertiary,

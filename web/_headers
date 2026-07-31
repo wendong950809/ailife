@@ -23,7 +23,13 @@
 /manifest.json
   Cache-Control: public, max-age=3600
 
-# 版本号静态资源（main.dart.js、assets、canvaskit等带hash的文件）- 强缓存一年，因为文件名中带hash会变
+# main.dart.js - Flutter主代码，文件名不带hash，不能强缓存
+/main.dart.js
+  Cache-Control: no-cache, no-store, must-revalidate, max-age=0
+  Pragma: no-cache
+  Expires: 0
+
+# 版本号静态资源（assets、canvaskit等带hash的文件）- 强缓存一年，因为文件名中带hash会变
 /*.js
   Cache-Control: public, max-age=31536000, immutable
 
